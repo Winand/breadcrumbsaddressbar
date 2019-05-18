@@ -7,6 +7,7 @@ from pathlib import Path
 import os
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
+from filesystem_model import FilenameModel
 
 
 class LeftHBoxLayout(QtWidgets.QHBoxLayout):
@@ -149,18 +150,9 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.line_address.focusOutEvent = self.line_address_focusOutEvent
         self.line_address.contextMenuEvent_super = self.line_address.contextMenuEvent
         self.line_address.contextMenuEvent = self.line_address_contextMenuEvent
-        # self.line_address.textEdited.connect(self.line_address_textEdited)
-        self.completer = QtWidgets.QCompleter(self)  # FIXME:
-        fs_model = QtWidgets.QFileSystemModel(self.completer)
-        # fs_model.directoryLoaded.connect(self.completer.complete)  # QTBUG-38014
-        fs_model.setRootPath("")  # "//mybooklive"
-        fs_model.setFilter(QtCore.QDir.Dirs|QtCore.QDir.Drives|
-                           QtCore.QDir.NoDotAndDotDot|QtCore.QDir.AllDirs)
-        self.completer.setModel(fs_model)
-        self.completer.setCaseSensitivity(Qt.CaseInsensitive)  # FIXME: ???
-        self.completer.activated.connect(self.set_path)
-        self.line_address.setCompleter(self.completer)
         layout.addWidget(self.line_address)
+        # Add QCompleter to address line
+        self.init_completer(self.line_address)
 
         # Container for `btn_crumbs_hidden`, `crumbs_panel`, `switch_space`
         self.crumbs_container = QtWidgets.QWidget(self)
@@ -213,6 +205,20 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.ignore_resize = False
         self.path_ = None
         self.set_path(Path())
+
+    def init_completer(self, edit_widget):
+        "Init QCompleter to work with filesystem"
+        completer = QtWidgets.QCompleter(edit_widget)
+        completer.setCaseSensitivity(False)
+        fs_model = FilenameModel('dirs')
+        completer.setModel(fs_model)
+        # Optimize performance https://stackoverflow.com/a/33454284/1119602
+        popup = completer.popup()
+        popup.setUniformItemSizes(True)
+        popup.setLayoutMode(QtWidgets.QListView.Batched)
+        edit_widget.setCompleter(completer)
+        edit_widget.textEdited.connect(fs_model.setPathPrefix)
+        return completer
 
     def line_address_contextMenuEvent(self, event):
         self.line_address_context_menu_flag = True
