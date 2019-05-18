@@ -41,7 +41,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.line_address.contextMenuEvent = self.line_address_contextMenuEvent
         layout.addWidget(self.line_address)
         # Add QCompleter to address line
-        self.init_completer(self.line_address)
+        completer = self.init_completer(self.line_address)
+        completer.activated.connect(self.set_path)
 
         # Container for `btn_crumbs_hidden`, `crumbs_panel`, `switch_space`
         self.crumbs_container = QtWidgets.QWidget(self)
