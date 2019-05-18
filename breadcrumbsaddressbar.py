@@ -8,119 +8,8 @@ import os
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
 from filesystem_model import FilenameModel
+from layouts import LeftHBoxLayout
 
-
-class LeftHBoxLayout(QtWidgets.QHBoxLayout):
-    '''
-    Left aligned horizontal layout.
-    Hides items similar to Windows Explorer address bar.
-    '''
-    # Signal is emitted when an item is hidden/shown or removed with `takeAt`
-    widget_state_changed = QtCore.Signal(object, bool)
-
-    def __init__(self, parent=None, minimal_space=0.1):
-        super().__init__(parent)
-        self.first_visible = 0
-        self.set_space_widget()
-        self.set_minimal_space(minimal_space)
-
-    def set_space_widget(self, widget=None, stretch=1):
-        """
-        Set widget to be used to fill empty space to the right
-        If `widget`=None the stretch item is used (by default)
-        """
-        super().takeAt(self.count())
-        if widget:
-            super().addWidget(widget, stretch)
-        else:
-            self.addStretch(stretch)
-
-    def space_widget(self):
-        "Widget used to fill free space"
-        return self[self.count()]
-
-    def setGeometry(self, rc:QtCore.QRect):
-        "`rc` - layout's rectangle w/o margins"
-        super().setGeometry(rc)  # perform the layout
-        min_sp = self.minimal_space()
-        if min_sp < 1:  # percent
-            min_sp *= rc.width()
-        free_space = self[self.count()].geometry().width() - min_sp
-        if free_space < 0 and self.count_visible() > 1:  # hide more items
-            widget = self[self.first_visible].widget()
-            widget.hide()
-            self.first_visible += 1
-            self.widget_state_changed.emit(widget, False)
-        elif free_space > 0 and self.count_hidden():  # show more items
-            widget = self[self.first_visible-1].widget()
-            w_width = widget.width() + self.spacing()
-            if w_width <= free_space:  # enough space to show next item
-                # setGeometry is called after show
-                QtCore.QTimer.singleShot(0, widget.show)
-                self.first_visible -= 1
-                self.widget_state_changed.emit(widget, True)
-
-    def count_visible(self):
-        "Count of visible widgets"
-        return self.count(visible=True)
-
-    def count_hidden(self):
-        "Count of hidden widgets"
-        return self.count(visible=False)
-
-    def minimumSize(self):
-        margins = self.contentsMargins()
-        return QtCore.QSize(margins.left() + margins.right(),
-                            margins.top() + 24 + margins.bottom())
-
-    def addWidget(self, widget, stretch=0, alignment=None):
-        "Append widget to layout, make its width fixed"
-        # widget.setMinimumSize(widget.minimumSizeHint())  # FIXME:
-        super().insertWidget(self.count(), widget, stretch,
-                             alignment or Qt.Alignment(0))
-
-    def count(self, visible=None):
-        "Count of items in layout: `visible`=True|False(hidden)|None(all)"
-        cnt = super().count() - 1  # w/o last stretchable item
-        if visible is None:  # all items
-            return cnt
-        if visible:  # visible items
-            return cnt - self.first_visible
-        return self.first_visible  # hidden items
-
-    def widgets(self, state='all'):
-        "Iterate over child widgets"
-        for i in range(self.first_visible if state=='visible' else 0,
-                       self.first_visible if state=='hidden' else self.count()
-                       ):
-            yield self[i].widget()
-
-    def set_minimal_space(self, value):
-        """
-        Set minimal size of space area to the right:
-        [0.0, 1.0) - % of the full width
-        [1, ...) - size in pixels
-        """
-        self._minimal_space = value
-        self.invalidate()
-
-    def minimal_space(self):
-        "See `set_minimal_space`"
-        return self._minimal_space
-
-    def __getitem__(self, index):
-        "`itemAt` slices wrapper"
-        if index < 0:
-            index = self.count() + index
-        return self.itemAt(index)
-
-    def takeAt(self, index):
-        "Return an item at the specified `index` and remove it from layout"
-        if index < self.first_visible:
-            self.first_visible -= 1
-        item = super().takeAt(index)
-        self.widget_state_changed.emit(item.widget(), False)
-        return item
 
 class BreadcrumbsAddressBar(QtWidgets.QFrame):
     "Windows Explorer-like address bar"
@@ -201,7 +90,6 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
         self.setMaximumHeight(self.line_address.height())  # FIXME:
 
-        # self.l_breadcrumbs = None
         self.ignore_resize = False
         self.path_ = None
         self.set_path(Path())
@@ -235,7 +123,6 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         menu = self.sender()
         menu.clear()
         # hid_count = self.crumbs_panel.layout().count_hidden()
-        # for i in self.l_breadcrumbs[hid_count-1::-1]:
         for i in reversed(list(self.crumbs_panel.layout().widgets('hidden'))):
             action = menu.addAction(i.text())
             action.path = i.path
@@ -268,8 +155,6 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
-        # self.l_crumbs_hidden, self.l_crumbs_visible = [], []  # init
-        # self.l_breadcrumbs = []
 
     def _insert_crumb(self, path):
         btn = QtWidgets.QToolButton(self.crumbs_panel)
@@ -290,8 +175,6 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         btn.setMinimumSize(btn.minimumSizeHint())  # fixed size breadcrumbs
         # print(self._check_space_width(btn.minimumWidth()))
         # print(btn.size(), btn.sizeHint(), btn.minimumSizeHint())
-        # self.l_crumbs_visible.insert(0, btn)
-        # self.l_breadcrumbs.insert(0, btn)
 
     def crumb_clicked(self):
         "SLOT: breadcrumb was clicked"
@@ -339,8 +222,6 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         while path.parent != path:
             path = path.parent
             self._insert_crumb(path)
-        # self.l_crumbs_visible[-1].setMinimumSize(0, 0)  # FIXME: last piece is resizable?
-        # QtCore.QTimer.singleShot(0, self._show_hide_breadcrumbs)
         self.path_selected.emit(path)
         return True
 
@@ -398,15 +279,12 @@ if __name__ == '__main__':
         
         def b_clicked(self):
             pass
-            # print(self.address._check_space_width())
-            # print([i.width() for i in self.address.l_crumbs_visible])  
-            # print([i.minimumSizeHint() for i in self.address.l_crumbs_visible])  
 
         def __init__(self):  # pylint: disable=super-init-not-called
             self.address = BreadcrumbsAddressBar()
-            self.b = QtWidgets.QPushButton("test_button_long_text", self)
-            self.b.setFixedWidth(200)
-            self.layout().addWidget(self.b)
+            # self.b = QtWidgets.QPushButton("test_button_long_text", self)
+            # self.b.setFixedWidth(200)
+            # self.layout().addWidget(self.b)
             self.layout().addWidget(self.address)
             self.address.listdir_error.connect(self.perm_err)
             self.address.path_error.connect(self.path_err)
@@ -417,6 +295,6 @@ if __name__ == '__main__':
             def act():
                 for i in self.address.crumbs_panel.layout().widgets('hidden'):
                     print(i.text())
-            self.b.clicked.connect(act)
+            # self.b.clicked.connect(act)
 
     QtForm(Form)
