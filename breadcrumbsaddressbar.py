@@ -253,7 +253,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         #     paths = [str(i) for i in
         #              Path(self.line_address.text()).iterdir() if i.is_dir()]
         #     self.completer.model().setStringList(paths)
-        self.line_address.keyPressEvent_super(event)
+        else:
+            self.line_address.keyPressEvent_super(event)
 
     def _clear_crumbs(self):
         layout = self.crumbs_panel.layout()
@@ -379,7 +380,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 if __name__ == '__main__':
     from qtapp import QtForm
 
-    class Form(QtWidgets.QWidget):
+    class Form(QtWidgets.QDialog):
         _layout_ = QtWidgets.QHBoxLayout
         _loop_ = True
 
