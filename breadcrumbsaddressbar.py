@@ -7,8 +7,12 @@ from pathlib import Path
 import os
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
-from filesystem_model import FilenameModel
-from layouts import LeftHBoxLayout
+if __package__:  # https://stackoverflow.com/a/28151907
+    from .filesystem_model import FilenameModel
+    from .layouts import LeftHBoxLayout
+else:
+    from filesystem_model import FilenameModel
+    from layouts import LeftHBoxLayout
 
 
 class BreadcrumbsAddressBar(QtWidgets.QFrame):
