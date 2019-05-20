@@ -20,8 +20,10 @@ TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
 class QListViewMenu(QtWidgets.QMenu):
     """
     QMenu with QListView.
-    Supports `activated`, `clicked`, `doubleClicked`. `setModel`.
+    Supports `activated`, `clicked`, `doubleClicked`, `setModel`.
     """
+    max_visible_items = 16
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.listview = lv = QtWidgets.QListView()
@@ -30,15 +32,27 @@ class QListViewMenu(QtWidgets.QMenu):
         pal = lv.palette()
         pal.setColor(pal.Base, self.palette().color(pal.Window))
         lv.setPalette(pal)
+        lv.setEditTriggers(lv.NoEditTriggers)  # disable edit on doubleclick
 
         act_wgt = QtWidgets.QWidgetAction(self)
         act_wgt.setDefaultWidget(lv)
         self.addAction(act_wgt)
 
-        self.activated = self.listview.activated
-        self.clicked = self.listview.clicked
-        self.doubleClicked = self.listview.doubleClicked
-        self.setModel = self.listview.setModel
+        self.activated = lv.activated
+        self.clicked = lv.clicked
+        self.doubleClicked = lv.doubleClicked
+        self.setModel = lv.setModel
+
+        lv.sizeHint_super = lv.sizeHint
+        def size_hint():
+            width = lv.sizeHintForColumn(0)
+            width += lv.verticalScrollBar().sizeHint().width()
+            if isinstance(self.parent(), QtWidgets.QToolButton):
+                width = max(width, self.parent().width())
+            visible_rows = min(self.max_visible_items, lv.model().rowCount())
+            return QtCore.QSize(width, visible_rows * lv.sizeHintForRow(0))
+        lv.sizeHint = size_hint
+        lv.minimumSizeHint = size_hint
 
 
 class BreadcrumbsAddressBar(QtWidgets.QFrame):
