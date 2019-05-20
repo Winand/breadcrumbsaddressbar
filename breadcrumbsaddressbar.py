@@ -14,6 +14,8 @@ else:
     from filesystem_model import FilenameModel
     from layouts import LeftHBoxLayout
 
+TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
+
 
 class BreadcrumbsAddressBar(QtWidgets.QFrame):
     "Windows Explorer-like address bar"
@@ -24,6 +26,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QtWidgets.QHBoxLayout(self)
+
+        self.file_ico_prov = QtWidgets.QFileIconProvider()
 
         pal = self.palette()
         pal.setColor(QtGui.QPalette.Background,
@@ -103,7 +107,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         "Init QCompleter to work with filesystem"
         completer = QtWidgets.QCompleter(edit_widget)
         completer.setCaseSensitivity(False)
-        fs_model = FilenameModel('dirs')
+        fs_model = FilenameModel('dirs', icon_provider=self.get_icon)
         completer.setModel(fs_model)
         # Optimize performance https://stackoverflow.com/a/33454284/1119602
         popup = completer.popup()
@@ -112,6 +116,20 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         edit_widget.setCompleter(completer)
         edit_widget.textEdited.connect(fs_model.setPathPrefix)
         return completer
+
+    def get_icon(self, path: str):
+        "Path -> QIcon"
+        fileinfo = QtCore.QFileInfo(path)
+        dat = self.file_ico_prov.icon(fileinfo)
+        if fileinfo.isHidden():
+            pmap = QtGui.QPixmap(*TRANSP_ICON_SIZE)
+            pmap.fill(Qt.transparent)
+            painter = QtGui.QPainter(pmap)
+            painter.setOpacity(0.5)
+            dat.paint(painter, 0, 0, *TRANSP_ICON_SIZE)
+            painter.end()
+            dat = QtGui.QIcon(pmap)
+        return dat
 
     def line_address_contextMenuEvent(self, event):
         self.line_address_context_menu_flag = True
