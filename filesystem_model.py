@@ -44,7 +44,8 @@ class FilenameModel(QtCore.QStringListModel):
             lst = [str(path / i) for i in names]
         return lst
 
-    def sort_paths(self, paths):
+    @staticmethod
+    def sort_paths(paths):
         "Windows-Explorer-like filename sorting (for 'pathlib' engine)"
         dirs, files = [], []
         for i in paths:
