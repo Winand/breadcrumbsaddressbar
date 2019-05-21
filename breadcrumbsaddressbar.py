@@ -17,6 +17,91 @@ else:
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
 
 
+class QListViewMenu(QtWidgets.QMenu):
+    """
+    QMenu with QListView.
+    Supports `activated`, `clicked`, `setModel`.
+    """
+    max_visible_items = 16
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.listview = lv = QtWidgets.QListView()
+        lv.setFrameShape(lv.NoFrame)
+        lv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        pal = lv.palette()
+        pal.setColor(pal.Base, self.palette().color(pal.Window))
+        lv.setPalette(pal)
+
+        act_wgt = QtWidgets.QWidgetAction(self)
+        act_wgt.setDefaultWidget(lv)
+        self.addAction(act_wgt)
+
+        self.activated = lv.activated
+        self.clicked = lv.clicked
+        self.setModel = lv.setModel
+
+        lv.sizeHint = self.size_hint
+        lv.minimumSizeHint = self.size_hint
+        lv.mousePressEvent = lambda event: None  # skip
+        lv.mouseMoveEvent = self.mouse_move_event
+        lv.mouseReleaseEvent = self.mouse_release_event
+        lv.keyPressEvent = self.key_press_event
+        lv.setFocusPolicy(Qt.NoFocus)  # no focus rect
+        lv.setFocus()
+        lv.setMouseTracking(True)
+
+        self.last_index = None
+
+    def key_press_event(self, event):
+        key = event.key()
+        if key in (Qt.Key_Return, Qt.Key_Enter):
+            print(self.last_index)
+        elif key in (Qt.Key_Down, Qt.Key_Up):
+            # m_event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, QtCore.QPoint(10,10),
+            #     Qt.NoButton, Qt.NoButton, Qt.NoModifier)
+            # app = QtWidgets.QApplication.instance()
+            # def ev():
+            #     result = app.sendEvent(self.listview, m_event)
+            # QtCore.QTimer.singleShot(0, ev)
+            model = self.listview.model()
+            row_from, row_to = 0, model.rowCount()-1
+            if key == Qt.Key_Down:
+                row_from, row_to = row_to, row_from
+            if not self.last_index or self.last_index.row()==row_from:
+                index = model.index(row_to, 0)
+            else:
+                shift = 1 if key == Qt.Key_Down else -1
+                index = model.index(self.last_index.row()+shift, 0)
+            self.listview.setCurrentIndex(index)
+            self.last_index = index
+            print('down' if key==Qt.Key_Down else 'up')
+        elif key == Qt.Key_Escape:
+            self.close()
+
+    def mouse_move_event(self, event):
+        print('mouse move!!')
+        self.listview.clearSelection()
+        self.last_index = self.listview.indexAt(event.pos())
+
+    def size_hint(self):
+        lv = self.listview
+        width = lv.sizeHintForColumn(0)
+        width += lv.verticalScrollBar().sizeHint().width()
+        if isinstance(self.parent(), QtWidgets.QToolButton):
+            width = max(width, self.parent().width())
+        visible_rows = min(self.max_visible_items, lv.model().rowCount())
+        return QtCore.QSize(width, visible_rows * lv.sizeHintForRow(0))
+
+    def mouse_release_event(self, event):
+        if event.button() == Qt.LeftButton:
+            idx = self.listview.indexAt(event.pos())
+            if idx.isValid():
+                self.clicked.emit(idx)
+            self.close()
+        super(QtWidgets.QListView, self.listview).mouseReleaseEvent(event)
+
+
 class BreadcrumbsAddressBar(QtWidgets.QFrame):
     "Windows Explorer-like address bar"
     listdir_error = QtCore.Signal(Path)  # failed to list a directory
@@ -28,6 +113,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         layout = QtWidgets.QHBoxLayout(self)
 
         self.file_ico_prov = QtWidgets.QFileIconProvider()
+        self.fs_model = FilenameModel('dirs', icon_provider=self.get_icon)
 
         pal = self.palette()
         pal.setColor(QtGui.QPalette.Background,
@@ -49,7 +135,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.line_address.contextMenuEvent = self.line_address_contextMenuEvent
         layout.addWidget(self.line_address)
         # Add QCompleter to address line
-        completer = self.init_completer(self.line_address)
+        completer = self.init_completer(self.line_address, self.fs_model)
         completer.activated.connect(self.set_path)
 
         # Container for `btn_crumbs_hidden`, `crumbs_panel`, `switch_space`
@@ -103,18 +189,18 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.path_ = None
         self.set_path(Path())
 
-    def init_completer(self, edit_widget):
+    @staticmethod
+    def init_completer(edit_widget, model):
         "Init QCompleter to work with filesystem"
         completer = QtWidgets.QCompleter(edit_widget)
-        completer.setCaseSensitivity(False)
-        fs_model = FilenameModel('dirs', icon_provider=self.get_icon)
-        completer.setModel(fs_model)
+        completer.setCaseSensitivity(Qt.CaseInsensitive)
+        completer.setModel(model)
         # Optimize performance https://stackoverflow.com/a/33454284/1119602
         popup = completer.popup()
         popup.setUniformItemSizes(True)
         popup.setLayoutMode(QtWidgets.QListView.Batched)
         edit_widget.setCompleter(completer)
-        edit_widget.textEdited.connect(fs_model.setPathPrefix)
+        edit_widget.textEdited.connect(model.setPathPrefix)
         return completer
 
     def get_icon(self, path: str):
@@ -188,16 +274,22 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         btn.setText(crumb_text)
         btn.path = path
         btn.clicked.connect(self.crumb_clicked)
-        menu = QtWidgets.QMenu(btn)
+        menu = QListViewMenu(btn)
         menu.aboutToShow.connect(self.crumb_menu_show)
-        menu.aboutToHide.connect(self.crumb_menu_hide)
-        # scrollable menu https://stackoverflow.com/a/14719633/1119602
-        menu.setStyleSheet("QMenu { menu-scrollable: 1; }")
+        menu.setModel(self.fs_model)
+        menu.clicked.connect(self.crumb_menuitem_clicked)
         btn.setMenu(menu)
         self.crumbs_panel.layout().insertWidget(0, btn)
         btn.setMinimumSize(btn.minimumSizeHint())  # fixed size breadcrumbs
+        sp = btn.sizePolicy()
+        sp.setVerticalPolicy(sp.Minimum)
+        btn.setSizePolicy(sp)
         # print(self._check_space_width(btn.minimumWidth()))
         # print(btn.size(), btn.sizeHint(), btn.minimumSizeHint())
+
+    def crumb_menuitem_clicked(self, index):
+        "SLOT: breadcrumb menu item was clicked"
+        self.set_path(index.data(Qt.EditRole))
 
     def crumb_clicked(self):
         "SLOT: breadcrumb was clicked"
@@ -206,20 +298,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def crumb_menu_show(self):
         "SLOT: fill subdirectory list on menu open"
         menu = self.sender()
-        context_root = menu.parent().path
-        try:
-            for i in context_root.iterdir():
-                if not i.is_dir():
-                    continue
-                action = menu.addAction(i.name)
-                action.path = i
-                action.triggered.connect(self.set_path)
-        except PermissionError:
-            self.listdir_error.emit(context_root)
-
-    def crumb_menu_hide(self):
-        "SLOT: Clear sub-dir menu on hide but let action trigger first"
-        QtCore.QTimer.singleShot(0, self.sender().clear)
+        self.fs_model.setPathPrefix(str(menu.parent().path) + os.path.sep)
 
     def set_path(self, path=None):
         """
