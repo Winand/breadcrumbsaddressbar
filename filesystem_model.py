@@ -37,8 +37,8 @@ class FilenameModel(QtCore.QStringListModel):
                                    if self.filter != 'dirs' or i.is_dir()])
         elif self.fs_engine == 'qt':
             qdir = QtCore.QDir(str(path))
-            qdir.setFilter(qdir.NoDotAndDotDot | (qdir.Dirs
-                           if self.filter == 'dirs' else qdir.AllEntries))
+            qdir.setFilter(qdir.NoDotAndDotDot | qdir.Hidden |
+                (qdir.Dirs if self.filter == 'dirs' else qdir.AllEntries))
             names = qdir.entryList(sort=QtCore.QDir.DirsFirst |
                                    QtCore.QDir.LocaleAware)
             lst = [str(path / i) for i in names]
