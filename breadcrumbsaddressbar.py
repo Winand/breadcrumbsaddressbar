@@ -8,98 +8,13 @@ import os
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
 if __package__:  # https://stackoverflow.com/a/28151907
-    from .filesystem_model import FilenameModel
+    from .models_views import FilenameModel, MenuListView
     from .layouts import LeftHBoxLayout
 else:
-    from filesystem_model import FilenameModel
+    from models_views import FilenameModel, MenuListView
     from layouts import LeftHBoxLayout
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
-
-
-class QListViewMenu(QtWidgets.QMenu):
-    """
-    QMenu with QListView.
-    Supports `activated`, `clicked`, `setModel`.
-    """
-    max_visible_items = 16
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.listview = lv = QtWidgets.QListView()
-        lv.setFrameShape(lv.NoFrame)
-        lv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        pal = lv.palette()
-        pal.setColor(pal.Base, self.palette().color(pal.Window))
-        lv.setPalette(pal)
-
-        act_wgt = QtWidgets.QWidgetAction(self)
-        act_wgt.setDefaultWidget(lv)
-        self.addAction(act_wgt)
-
-        self.activated = lv.activated
-        self.clicked = lv.clicked
-        self.setModel = lv.setModel
-
-        lv.sizeHint = self.size_hint
-        lv.minimumSizeHint = self.size_hint
-        lv.mousePressEvent = lambda event: None  # skip
-        lv.mouseMoveEvent = self.mouse_move_event
-        lv.mouseReleaseEvent = self.mouse_release_event
-        lv.keyPressEvent = self.key_press_event
-        lv.setFocusPolicy(Qt.NoFocus)  # no focus rect
-        lv.setFocus()
-        lv.setMouseTracking(True)
-
-        self.last_index = None
-
-    def key_press_event(self, event):
-        key = event.key()
-        if key in (Qt.Key_Return, Qt.Key_Enter):
-            print(self.last_index)
-        elif key in (Qt.Key_Down, Qt.Key_Up):
-            # m_event = QtGui.QMouseEvent(QtCore.QEvent.MouseMove, QtCore.QPoint(10,10),
-            #     Qt.NoButton, Qt.NoButton, Qt.NoModifier)
-            # app = QtWidgets.QApplication.instance()
-            # def ev():
-            #     result = app.sendEvent(self.listview, m_event)
-            # QtCore.QTimer.singleShot(0, ev)
-            model = self.listview.model()
-            row_from, row_to = 0, model.rowCount()-1
-            if key == Qt.Key_Down:
-                row_from, row_to = row_to, row_from
-            if not self.last_index or self.last_index.row()==row_from:
-                index = model.index(row_to, 0)
-            else:
-                shift = 1 if key == Qt.Key_Down else -1
-                index = model.index(self.last_index.row()+shift, 0)
-            self.listview.setCurrentIndex(index)
-            self.last_index = index
-            print('down' if key==Qt.Key_Down else 'up')
-        elif key == Qt.Key_Escape:
-            self.close()
-
-    def mouse_move_event(self, event):
-        print('mouse move!!')
-        self.listview.clearSelection()
-        self.last_index = self.listview.indexAt(event.pos())
-
-    def size_hint(self):
-        lv = self.listview
-        width = lv.sizeHintForColumn(0)
-        width += lv.verticalScrollBar().sizeHint().width()
-        if isinstance(self.parent(), QtWidgets.QToolButton):
-            width = max(width, self.parent().width())
-        visible_rows = min(self.max_visible_items, lv.model().rowCount())
-        return QtCore.QSize(width, visible_rows * lv.sizeHintForRow(0))
-
-    def mouse_release_event(self, event):
-        if event.button() == Qt.LeftButton:
-            idx = self.listview.indexAt(event.pos())
-            if idx.isValid():
-                self.clicked.emit(idx)
-            self.close()
-        super(QtWidgets.QListView, self.listview).mouseReleaseEvent(event)
 
 
 class BreadcrumbsAddressBar(QtWidgets.QFrame):
@@ -274,10 +189,11 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         btn.setText(crumb_text)
         btn.path = path
         btn.clicked.connect(self.crumb_clicked)
-        menu = QListViewMenu(btn)
+        menu = MenuListView(btn)
         menu.aboutToShow.connect(self.crumb_menu_show)
         menu.setModel(self.fs_model)
         menu.clicked.connect(self.crumb_menuitem_clicked)
+        menu.activated.connect(self.crumb_menuitem_clicked)
         btn.setMenu(menu)
         self.crumbs_panel.layout().insertWidget(0, btn)
         btn.setMinimumSize(btn.minimumSizeHint())  # fixed size breadcrumbs
