@@ -118,9 +118,9 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         edit_widget.textEdited.connect(model.setPathPrefix)
         return completer
 
-    def get_icon(self, path: str):
+    def get_icon(self, path: (str, Path)):
         "Path -> QIcon"
-        fileinfo = QtCore.QFileInfo(path)
+        fileinfo = QtCore.QFileInfo(str(path))
         dat = self.file_ico_prov.icon(fileinfo)
         if fileinfo.isHidden():
             pmap = QtGui.QPixmap(*TRANSP_ICON_SIZE)
@@ -148,7 +148,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         menu.clear()
         # hid_count = self.crumbs_panel.layout().count_hidden()
         for i in reversed(list(self.crumbs_panel.layout().widgets('hidden'))):
-            action = menu.addAction(i.text())
+            action = menu.addAction(self.get_icon(i.path), i.text())
             action.path = i.path
             action.triggered.connect(self.set_path)
 
