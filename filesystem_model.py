@@ -9,25 +9,33 @@ class FilenameModel(QtCore.QStringListModel):
     Constructor options:
     `filter_` (None, 'dirs') - include all entries or folders only
     `fs_engine` ('qt', 'pathlib') - enumerate files using `QDir` or `pathlib`
+    `icon_provider` (func, 'internal', None) - a function which gets path
+                                               and returns QIcon
     """
-    def __init__(self, filter_=None, fs_engine='qt'):
+    def __init__(self, filter_=None, fs_engine='qt', icon_provider='internal'):
         super().__init__()
-        self.icons = QtWidgets.QFileIconProvider()
         self.current_path = None
         self.fs_engine = fs_engine
         self.filter = filter_
+        if icon_provider == 'internal':
+            self.icons = QtWidgets.QFileIconProvider()
+            self.icon_provider = self.get_icon
+        else:
+            self.icon_provider = icon_provider
 
     def data(self, index, role):
         "Get names/icons of files"
         default = super().data(index, role)
-        if role == Qt.DecorationRole:
-            fileinfo = QtCore.QFileInfo(super().data(index, Qt.DisplayRole))
-            dat = self.icons.icon(fileinfo)
+        if role == Qt.DecorationRole and self.icon_provider:
             # self.setData(index, dat, role)
-            return dat
+            return self.icon_provider(super().data(index, Qt.DisplayRole))
         if role == Qt.DisplayRole:
             return Path(default).name
         return default
+
+    def get_icon(self, path):
+        "Internal icon provider"
+        return self.icons.icon(QtCore.QFileInfo(path))
 
     def get_file_list(self, path):
         "List entries in `path` directory"
