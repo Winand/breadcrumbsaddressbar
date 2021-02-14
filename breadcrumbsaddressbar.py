@@ -5,6 +5,7 @@ Andrey Makarov, 2019
 
 from pathlib import Path
 import os
+from typing import Union
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
 if __package__:  # https://stackoverflow.com/a/28151907
@@ -118,7 +119,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         edit_widget.textEdited.connect(model.setPathPrefix)
         return completer
 
-    def get_icon(self, path: (str, Path)):
+    def get_icon(self, path: Union[str, Path]):
         "Path -> QIcon"
         fileinfo = QtCore.QFileInfo(str(path))
         dat = self.file_ico_prov.icon(fileinfo)
