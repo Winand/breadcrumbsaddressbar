@@ -48,10 +48,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.line_address = QtWidgets.QLineEdit(self)
         self.line_address.setFrame(False)
         self.line_address.hide()
-        self.line_address.keyPressEvent_super = self.line_address.keyPressEvent
         self.line_address.keyPressEvent = self.line_address_keyPressEvent
         self.line_address.focusOutEvent = self.line_address_focusOutEvent
-        self.line_address.contextMenuEvent_super = self.line_address.contextMenuEvent
         self.line_address.contextMenuEvent = self.line_address_contextMenuEvent
         layout.addWidget(self.line_address)
         # Add QCompleter to address line
@@ -140,7 +138,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
     def line_address_contextMenuEvent(self, event):
         self.line_address_context_menu_flag = True
-        self.line_address.contextMenuEvent_super(event)
+        QtWidgets.QLineEdit.contextMenuEvent(self.line_address, event)
 
     def line_address_focusOutEvent(self, event):
         if getattr(self, 'line_address_context_menu_flag', False):
@@ -214,7 +212,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         #              Path(self.line_address.text()).iterdir() if i.is_dir()]
         #     self.completer.model().setStringList(paths)
         else:
-            self.line_address.keyPressEvent_super(event)
+            QtWidgets.QLineEdit.keyPressEvent(self.line_address, event)
 
     def _clear_crumbs(self):
         layout = self.crumbs_panel.layout()
