@@ -62,18 +62,19 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         layout.addWidget(self.crumbs_container)
 
         # Hidden breadcrumbs menu button
-        self.btn_crumbs_hidden = QtWidgets.QToolButton(self)
-        self.btn_crumbs_hidden.setAutoRaise(True)
-        self.btn_crumbs_hidden.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.btn_crumbs_hidden.setArrowType(Qt.LeftArrow)
-        self.btn_crumbs_hidden.setStyleSheet("QToolButton::menu-indicator {"
+        self.btn_root_crumb = QtWidgets.QToolButton(self)
+        self.btn_root_crumb.setAutoRaise(True)
+        self.btn_root_crumb.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+        self.btn_root_crumb.setArrowType(Qt.RightArrow)
+        self.btn_root_crumb.setStyleSheet("QToolButton::menu-indicator {"
                                              "image: none;}")
-        self.btn_crumbs_hidden.setMinimumSize(self.btn_crumbs_hidden.minimumSizeHint())
-        self.btn_crumbs_hidden.hide()
-        crumbs_cont_layout.addWidget(self.btn_crumbs_hidden)
-        menu = QtWidgets.QMenu(self.btn_crumbs_hidden)  # FIXME:
+        self.btn_root_crumb.setMinimumSize(self.btn_root_crumb.minimumSizeHint())
+        crumbs_cont_layout.addWidget(self.btn_root_crumb)
+        menu = QtWidgets.QMenu(self.btn_root_crumb)  # FIXME:
         menu.aboutToShow.connect(self._hidden_crumbs_menu_show)
-        self.btn_crumbs_hidden.setMenu(menu)
+        self.btn_root_crumb.setMenu(menu)
+        self.init_rootmenu_places(menu)  # Desktop, Home, Downloads...
+        self.update_rootmenu_devices()  # C:, D:...
 
         # Container for breadcrumbs
         self.crumbs_panel = QtWidgets.QWidget(self)
@@ -146,12 +147,49 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def _hidden_crumbs_menu_show(self):
         "SLOT: fill menu with hidden breadcrumbs list"
         menu = self.sender()
-        menu.clear()
-        # hid_count = self.crumbs_panel.layout().count_hidden()
-        for i in reversed(list(self.crumbs_panel.layout().widgets('hidden'))):
-            action = menu.addAction(self.get_icon(i.path), i.text())
+        if hasattr(self, 'actions_hidden_crumbs'):
+            for action in self.actions_hidden_crumbs:
+                menu.removeAction(action)
+        self.actions_hidden_crumbs = []
+
+        first_action = menu.actions()[0]  # places section separator
+        for i in self.crumbs_panel.layout().widgets('hidden'):
+            action = QtWidgets.QAction(self.get_icon(i.path), i.text(), menu)
             action.path = i.path
             action.triggered.connect(self.set_path)
+            menu.insertAction(first_action, action)
+            self.actions_hidden_crumbs.append(action)
+            first_action = action
+
+    def init_rootmenu_places(self, menu):
+        "Init common places actions in menu"
+        menu.addSeparator()
+        QSP = QtCore.QStandardPaths
+        uname = os.environ.get('USER') or os.environ.get('USERNAME') or "Home"
+        for name, path in (
+                ("Desktop", QSP.writableLocation(QSP.DesktopLocation)),
+                (uname, QSP.writableLocation(QSP.HomeLocation)),
+                ("Documents", QSP.writableLocation(QSP.DocumentsLocation)),
+                ("Downloads", QSP.writableLocation(QSP.DownloadLocation)),
+                ):
+            action = menu.addAction(self.get_icon(path), name)
+            action.path = path
+            action.triggered.connect(self.set_path)
+
+    def update_rootmenu_devices(self):
+        "Init or rebuild device actions in menu"
+        menu = self.btn_root_crumb.menu()
+        if hasattr(self, 'actions_devices'):
+            for action in self.actions_devices:
+                menu.removeAction(action)
+        self.actions_devices = [menu.addSeparator()]
+        for i in QtCore.QStorageInfo.mountedVolumes():  # QDir.drives():
+            path = i.rootPath()
+            caption = "%s (%s)" % (i.displayName(), path.rstrip(r"\/"))
+            action = menu.addAction(self.get_icon(path), caption)
+            action.path = path
+            action.triggered.connect(self.set_path)
+            self.actions_devices.append(action)
 
     def _browse_for_folder(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
@@ -273,10 +311,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def crumb_hide_show(self, widget, state:bool):
         "SLOT: a breadcrumb is hidden/removed or shown"
         layout = self.crumbs_panel.layout()
-        if layout.count_hidden() > 0:
-            self.btn_crumbs_hidden.show()
-        else:
-            self.btn_crumbs_hidden.hide()
+        arrow = Qt.LeftArrow if layout.count_hidden() > 0 else Qt.RightArrow
+        self.btn_root_crumb.setArrowType(arrow)
 
     def minimumSizeHint(self):
         # print(self.layout().minimumSize().width())
