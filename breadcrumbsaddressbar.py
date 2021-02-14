@@ -40,6 +40,9 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.layout().setContentsMargins(4, 0, 0, 0)
         self.layout().setSpacing(0)
 
+        self.path_icon = QtWidgets.QLabel(self)
+        layout.addWidget(self.path_icon)
+
         # Edit presented path textually
         self.line_address = QtWidgets.QLineEdit(self)
         self.line_address.setFrame(False)
@@ -279,6 +282,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         while path.parent != path:
             path = path.parent
             self._insert_crumb(path)
+        self.path_icon.setPixmap(self.get_icon(self.path_).pixmap(16, 16))
         self.path_selected.emit(self.path_)
         return True
 
