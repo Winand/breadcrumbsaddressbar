@@ -279,7 +279,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         while path.parent != path:
             path = path.parent
             self._insert_crumb(path)
-        self.path_selected.emit(path)
+        self.path_selected.emit(self.path_)
         return True
 
     def _cancel_edit(self):
