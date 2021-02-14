@@ -3,6 +3,7 @@ Qt navigation bar with breadcrumbs
 Andrey Makarov, 2019
 """
 
+import platform
 from pathlib import Path
 import os
 from typing import Union
@@ -341,19 +342,20 @@ if __name__ == '__main__':
 
         def __init__(self):  # pylint: disable=super-init-not-called
             self.address = BreadcrumbsAddressBar()
-            # self.b = QtWidgets.QPushButton("test_button_long_text", self)
-            # self.b.setFixedWidth(200)
-            # self.layout().addWidget(self.b)
             self.layout().addWidget(self.address)
             self.address.listdir_error.connect(self.perm_err)
             self.address.path_error.connect(self.path_err)
-            # self.address.set_path(r"C:\Windows\System32\drivers\etc")
-            # print(self.b.width())
-            # self.b.hide()
-            # QtCore.QTimer.singleShot(0, lambda: print(self.b.width()))
-            def act():
-                for i in self.address.crumbs_panel.layout().widgets('hidden'):
-                    print(i.text())
-            # self.b.clicked.connect(act)
+
+            if platform.system() == "Windows":
+                from platform_win import parse_message, event_device_connection
+                def nativeEvent(eventType, message):
+                    msg = parse_message(message)
+                    devices = event_device_connection(msg)
+                    if devices:
+                        print("insert/remove device")
+                        self.address.update_rootmenu_devices()
+                    return False, 0
+                self.nativeEvent = nativeEvent
+
 
     QtForm(Form)
