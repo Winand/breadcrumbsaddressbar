@@ -12,9 +12,11 @@ from qtpy.QtCore import Qt
 if __package__:  # https://stackoverflow.com/a/28151907
     from .models_views import FilenameModel, MenuListView
     from .layouts import LeftHBoxLayout
+    from .stylesheet import style_root_toolbutton
 else:
     from models_views import FilenameModel, MenuListView
     from layouts import LeftHBoxLayout
+    from stylesheet import style_root_toolbutton
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
 
@@ -27,6 +29,11 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.arrow_pix = QtGui.QPixmap("iconfinder_icon-ios7-arrow-right_211607.png")
+        self.style_crumbs = self.StyleProxy(QtWidgets.QStyleFactory.create(
+            QtWidgets.QApplication.instance().style().objectName()
+        ))
+
         layout = QtWidgets.QHBoxLayout(self)
 
         self.file_ico_prov = QtWidgets.QFileIconProvider()
@@ -68,8 +75,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.btn_root_crumb.setAutoRaise(True)
         self.btn_root_crumb.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.btn_root_crumb.setArrowType(Qt.RightArrow)
-        self.btn_root_crumb.setStyleSheet("QToolButton::menu-indicator {"
-                                             "image: none;}")
+        self.btn_root_crumb.setStyleSheet(style_root_toolbutton)
         self.btn_root_crumb.setMinimumSize(self.btn_root_crumb.minimumSizeHint())
         crumbs_cont_layout.addWidget(self.btn_root_crumb)
         menu = QtWidgets.QMenu(self.btn_root_crumb)  # FIXME:
@@ -217,14 +223,72 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def _clear_crumbs(self):
         layout = self.crumbs_panel.layout()
         while layout.count():
-            child = layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            widget = layout.takeAt(0).widget()
+            if widget:
+                # Unset style or `StyleProxy.drawPrimitive` is called once with
+                # mysterious `QWidget` instead of `QToolButton` (Windows 7)
+                widget.setStyle(None)
+                widget.deleteLater()
+
+    class StyleProxy(QtWidgets.QProxyStyle):
+        win_modern = ("windowsxp", "windowsvista")
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.stylename = self.baseStyle().objectName()
+
+        def drawPrimitive(self, pe, opt, p: QtGui.QPainter, widget):
+            # QToolButton elements:
+            # 13: PE_PanelButtonCommand (Fusion) - Fusion button background, called from 15 and 24 calls
+            # 15: PE_PanelButtonTool (Windows, Fusion) - left part background (XP/Vista styles do not draw it with `drawPrimitive`)
+            # 19: PE_IndicatorArrowDown (Windows, Fusion) - right part down arrow (XP/Vista styles draw it in 24 call)
+            # 24: PE_IndicatorButtonDropDown (Windows, XP, Vista, Fusion) - right part background (+arrow for XP/Vista)
+            # 
+            # Arrow is drawn along with PE_IndicatorButtonDropDown (XP/Vista)
+            # https://github.com/qt/qtbase/blob/0c51a8756377c40180619046d07b35718fcf1784/src/plugins/styles/windowsvista/qwindowsxpstyle.cpp#L1406
+            # https://github.com/qt/qtbase/blob/0c51a8756377c40180619046d07b35718fcf1784/src/plugins/styles/windowsvista/qwindowsxpstyle.cpp#L666
+            # drawBackground paints with DrawThemeBackgroundEx WinApi function
+            # https://docs.microsoft.com/en-us/windows/win32/api/uxtheme/nf-uxtheme-drawthemebackgroundex
+            if (self.stylename in self.win_modern and
+                pe == self.PE_IndicatorButtonDropDown
+                ):
+                pe = self.PE_IndicatorArrowDown  # see below
+            if pe == self.PE_IndicatorArrowDown:
+                opt_ = QtWidgets.QStyleOptionToolButton()
+                widget.initStyleOption(opt_)
+                rc = super().subControlRect(self.CC_ToolButton, opt_,
+                                            self.SC_ToolButtonMenu, widget)
+                if self.stylename in self.win_modern:
+                    # By default PE_IndicatorButtonDropDown draws arrow along
+                    # with right button art. Draw 2px clipped left part instead
+                    path = QtGui.QPainterPath()
+                    path.addRect(QtCore.QRectF(rc))
+                    p.setClipPath(path)
+                    super().drawPrimitive(self.PE_PanelButtonTool, opt, p, widget)
+                # centered square
+                rc.moveTop((rc.height() - rc.width()) / 2)
+                rc.setHeight(rc.width())
+                # p.setRenderHint(p.Antialiasing)
+                p.drawPixmap(rc, widget.arrow_pix, QtCore.QRect())
+            else:
+                super().drawPrimitive(pe, opt, p, widget)
+
+        def subControlRect(self, cc, opt, sc, widget):
+            rc = super().subControlRect(cc, opt, sc, widget)
+            if (self.stylename in self.win_modern and
+                sc == self.SC_ToolButtonMenu
+                ):
+                rc.adjust(-2, 0, 0, 0)  # cut 2 left pixels to create flat edge
+            return rc
 
     def _insert_crumb(self, path):
         btn = QtWidgets.QToolButton(self.crumbs_panel)
         btn.setAutoRaise(True)
         btn.setPopupMode(btn.MenuButtonPopup)
+        btn.arrow_pix = self.arrow_pix
+        btn.setStyle(self.style_crumbs)
+        btn.mouseMoveEvent = self.crumb_mouse_move
+        btn.setMouseTracking(True)
         # FIXME: C:\ has no name. Use rstrip on Windows only?
         crumb_text = path.name or str(path).upper().rstrip(os.path.sep)
         btn.setText(crumb_text)
@@ -243,6 +307,10 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         btn.setSizePolicy(sp)
         # print(self._check_space_width(btn.minimumWidth()))
         # print(btn.size(), btn.sizeHint(), btn.minimumSizeHint())
+
+    def crumb_mouse_move(self, event):
+        ...
+        # print('move!')
 
     def crumb_menuitem_clicked(self, index):
         "SLOT: breadcrumb menu item was clicked"
@@ -316,6 +384,11 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         layout = self.crumbs_panel.layout()
         arrow = Qt.LeftArrow if layout.count_hidden() > 0 else Qt.RightArrow
         self.btn_root_crumb.setArrowType(arrow)
+        # if layout.count_hidden() > 0:
+        #     ico = QtGui.QIcon("iconfinder_icon-ios7-arrow-left_211689.png")
+        # else:
+        #     ico = QtGui.QIcon("iconfinder_icon-ios7-arrow-right_211607.png")
+        # self.btn_root_crumb.setIcon(ico)
 
     def minimumSizeHint(self):
         # print(self.layout().minimumSize().width())
@@ -339,6 +412,9 @@ if __name__ == '__main__':
             pass
 
         def __init__(self):  # pylint: disable=super-init-not-called
+            print(QtWidgets.QStyleFactory.keys())
+            # style = QtWidgets.QStyleFactory.create("fusion")
+            # self.app.setStyle(style)
             self.address = BreadcrumbsAddressBar()
             self.layout().addWidget(self.address)
             self.address.listdir_error.connect(self.perm_err)
