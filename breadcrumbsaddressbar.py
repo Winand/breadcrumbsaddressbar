@@ -29,10 +29,12 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.arrow_pix = QtGui.QPixmap("iconfinder_icon-ios7-arrow-right_211607.png")
-        self.style_crumbs = self.StyleProxy(QtWidgets.QStyleFactory.create(
-            QtWidgets.QApplication.instance().style().objectName()
-        ))
+        self.style_crumbs = StyleProxy(
+            QtWidgets.QStyleFactory.create(
+                QtWidgets.QApplication.instance().style().objectName()
+            ),
+            QtGui.QPixmap("iconfinder_icon-ios7-arrow-right_211607.png")
+        )
 
         layout = QtWidgets.QHBoxLayout(self)
 
@@ -230,62 +232,10 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
                 widget.setStyle(None)
                 widget.deleteLater()
 
-    class StyleProxy(QtWidgets.QProxyStyle):
-        win_modern = ("windowsxp", "windowsvista")
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.stylename = self.baseStyle().objectName()
-
-        def drawPrimitive(self, pe, opt, p: QtGui.QPainter, widget):
-            # QToolButton elements:
-            # 13: PE_PanelButtonCommand (Fusion) - Fusion button background, called from 15 and 24 calls
-            # 15: PE_PanelButtonTool (Windows, Fusion) - left part background (XP/Vista styles do not draw it with `drawPrimitive`)
-            # 19: PE_IndicatorArrowDown (Windows, Fusion) - right part down arrow (XP/Vista styles draw it in 24 call)
-            # 24: PE_IndicatorButtonDropDown (Windows, XP, Vista, Fusion) - right part background (+arrow for XP/Vista)
-            # 
-            # Arrow is drawn along with PE_IndicatorButtonDropDown (XP/Vista)
-            # https://github.com/qt/qtbase/blob/0c51a8756377c40180619046d07b35718fcf1784/src/plugins/styles/windowsvista/qwindowsxpstyle.cpp#L1406
-            # https://github.com/qt/qtbase/blob/0c51a8756377c40180619046d07b35718fcf1784/src/plugins/styles/windowsvista/qwindowsxpstyle.cpp#L666
-            # drawBackground paints with DrawThemeBackgroundEx WinApi function
-            # https://docs.microsoft.com/en-us/windows/win32/api/uxtheme/nf-uxtheme-drawthemebackgroundex
-            if (self.stylename in self.win_modern and
-                pe == self.PE_IndicatorButtonDropDown
-                ):
-                pe = self.PE_IndicatorArrowDown  # see below
-            if pe == self.PE_IndicatorArrowDown:
-                opt_ = QtWidgets.QStyleOptionToolButton()
-                widget.initStyleOption(opt_)
-                rc = super().subControlRect(self.CC_ToolButton, opt_,
-                                            self.SC_ToolButtonMenu, widget)
-                if self.stylename in self.win_modern:
-                    # By default PE_IndicatorButtonDropDown draws arrow along
-                    # with right button art. Draw 2px clipped left part instead
-                    path = QtGui.QPainterPath()
-                    path.addRect(QtCore.QRectF(rc))
-                    p.setClipPath(path)
-                    super().drawPrimitive(self.PE_PanelButtonTool, opt, p, widget)
-                # centered square
-                rc.moveTop((rc.height() - rc.width()) / 2)
-                rc.setHeight(rc.width())
-                # p.setRenderHint(p.Antialiasing)
-                p.drawPixmap(rc, widget.arrow_pix, QtCore.QRect())
-            else:
-                super().drawPrimitive(pe, opt, p, widget)
-
-        def subControlRect(self, cc, opt, sc, widget):
-            rc = super().subControlRect(cc, opt, sc, widget)
-            if (self.stylename in self.win_modern and
-                sc == self.SC_ToolButtonMenu
-                ):
-                rc.adjust(-2, 0, 0, 0)  # cut 2 left pixels to create flat edge
-            return rc
-
     def _insert_crumb(self, path):
         btn = QtWidgets.QToolButton(self.crumbs_panel)
         btn.setAutoRaise(True)
         btn.setPopupMode(btn.MenuButtonPopup)
-        btn.arrow_pix = self.arrow_pix
         btn.setStyle(self.style_crumbs)
         btn.mouseMoveEvent = self.crumb_mouse_move
         btn.setMouseTracking(True)
@@ -393,6 +343,59 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def minimumSizeHint(self):
         # print(self.layout().minimumSize().width())
         return QtCore.QSize(150, self.line_address.height())
+
+
+class StyleProxy(QtWidgets.QProxyStyle):
+    win_modern = ("windowsxp", "windowsvista")
+
+    def __init__(self, style, arrow_pix):
+        super().__init__(style)
+        self.arrow_pix = arrow_pix
+        self.stylename = self.baseStyle().objectName()
+
+    def drawPrimitive(self, pe, opt, p: QtGui.QPainter, widget):
+        # QToolButton elements:
+        # 13: PE_PanelButtonCommand (Fusion) - Fusion button background, called from 15 and 24 calls
+        # 15: PE_PanelButtonTool (Windows, Fusion) - left part background (XP/Vista styles do not draw it with `drawPrimitive`)
+        # 19: PE_IndicatorArrowDown (Windows, Fusion) - right part down arrow (XP/Vista styles draw it in 24 call)
+        # 24: PE_IndicatorButtonDropDown (Windows, XP, Vista, Fusion) - right part background (+arrow for XP/Vista)
+        # 
+        # Arrow is drawn along with PE_IndicatorButtonDropDown (XP/Vista)
+        # https://github.com/qt/qtbase/blob/0c51a8756377c40180619046d07b35718fcf1784/src/plugins/styles/windowsvista/qwindowsxpstyle.cpp#L1406
+        # https://github.com/qt/qtbase/blob/0c51a8756377c40180619046d07b35718fcf1784/src/plugins/styles/windowsvista/qwindowsxpstyle.cpp#L666
+        # drawBackground paints with DrawThemeBackgroundEx WinApi function
+        # https://docs.microsoft.com/en-us/windows/win32/api/uxtheme/nf-uxtheme-drawthemebackgroundex
+        if (self.stylename in self.win_modern and
+            pe == self.PE_IndicatorButtonDropDown
+            ):
+            pe = self.PE_IndicatorArrowDown  # see below
+        if pe == self.PE_IndicatorArrowDown:
+            opt_ = QtWidgets.QStyleOptionToolButton()
+            widget.initStyleOption(opt_)
+            rc = super().subControlRect(self.CC_ToolButton, opt_,
+                                        self.SC_ToolButtonMenu, widget)
+            if self.stylename in self.win_modern:
+                # By default PE_IndicatorButtonDropDown draws arrow along
+                # with right button art. Draw 2px clipped left part instead
+                path = QtGui.QPainterPath()
+                path.addRect(QtCore.QRectF(rc))
+                p.setClipPath(path)
+                super().drawPrimitive(self.PE_PanelButtonTool, opt, p, widget)
+            # centered square
+            rc.moveTop((rc.height() - rc.width()) / 2)
+            rc.setHeight(rc.width())
+            # p.setRenderHint(p.Antialiasing)
+            p.drawPixmap(rc, self.arrow_pix, QtCore.QRect())
+        else:
+            super().drawPrimitive(pe, opt, p, widget)
+
+    def subControlRect(self, cc, opt, sc, widget):
+        rc = super().subControlRect(cc, opt, sc, widget)
+        if (self.stylename in self.win_modern and
+            sc == self.SC_ToolButtonMenu
+            ):
+            rc.adjust(-2, 0, 0, 0)  # cut 2 left pixels to create flat edge
+        return rc
 
 
 if __name__ == '__main__':
