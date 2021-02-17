@@ -12,11 +12,9 @@ from qtpy.QtCore import Qt
 if __package__:  # https://stackoverflow.com/a/28151907
     from .models_views import FilenameModel, MenuListView
     from .layouts import LeftHBoxLayout
-    from .stylesheet import style_root_toolbutton
 else:
     from models_views import FilenameModel, MenuListView
     from layouts import LeftHBoxLayout
-    from stylesheet import style_root_toolbutton
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
 
@@ -72,11 +70,9 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         # Hidden breadcrumbs menu button
         self.btn_root_crumb = QtWidgets.QToolButton(self)
         self.btn_root_crumb.setAutoRaise(True)
-        # self.btn_root_crumb.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        # self.btn_root_crumb.setArrowType(Qt.RightArrow)
         self.btn_root_crumb.setPopupMode(self.btn_root_crumb.MenuButtonPopup)
+        self.btn_root_crumb.flipped = False
         self.btn_root_crumb.setStyle(self.style_crumbs)
-        # self.btn_root_crumb.setStyleSheet(style_root_toolbutton)
         self.btn_root_crumb.setMinimumSize(self.btn_root_crumb.minimumSizeHint())
         crumbs_cont_layout.addWidget(self.btn_root_crumb)
         menu = QtWidgets.QMenu(self.btn_root_crumb)  # FIXME:
@@ -238,6 +234,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         btn.setStyle(self.style_crumbs)
         btn.mouseMoveEvent = self.crumb_mouse_move
         btn.setMouseTracking(True)
+        btn.flipped = False
         # FIXME: C:\ has no name. Use rstrip on Windows only?
         crumb_text = path.name or str(path).upper().rstrip(os.path.sep)
         btn.setText(crumb_text)
@@ -338,6 +335,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         # else:
         #     ico = QtGui.QIcon("iconfinder_icon-ios7-arrow-right_211607.png")
         # self.btn_root_crumb.setIcon(ico)
+        self.btn_root_crumb.flipped = layout.count_hidden() > 0
 
     def minimumSizeHint(self):
         # print(self.layout().minimumSize().width())
@@ -384,7 +382,17 @@ class StyleProxy(QtWidgets.QProxyStyle):
             rc.moveTop((rc.height() - rc.width()) / 2)
             rc.setHeight(rc.width())
             # p.setRenderHint(p.Antialiasing)
-            p.drawPixmap(rc, self.arrow_pix, QtCore.QRect())
+            # p.setRenderHint(p.SmoothPixmapTransform);
+            pix = self.arrow_pix
+            if (opt.state & self.State_Sunken) == self.State_Sunken:
+                t = QtGui.QTransform()
+                t.rotate(90)
+                pix = pix.transformed(t)
+            elif widget.flipped:
+                t = QtGui.QTransform()
+                t.rotate(180)
+                pix = pix.transformed(t)
+            p.drawPixmap(rc, pix, QtCore.QRect())
         else:
             super().drawPrimitive(pe, opt, p, widget)
 
