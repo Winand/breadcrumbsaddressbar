@@ -101,7 +101,7 @@ class MenuListView(QtWidgets.QMenu):
 
         lv.sizeHint = self.size_hint
         lv.minimumSizeHint = self.size_hint
-        lv.mousePressEvent = lambda event: None  # skip
+        lv.mousePressEvent = self.mouse_press_event
         lv.mouseMoveEvent = self.mouse_move_event
         lv.setMouseTracking(True)  # receive mouse move events
         lv.leaveEvent = self.mouse_leave_event
@@ -111,6 +111,7 @@ class MenuListView(QtWidgets.QMenu):
         lv.setFocus()
 
         self.last_index = QtCore.QModelIndex()  # selected index
+        self.flag_mouse_l_pressed = False
 
     def key_press_event(self, event):
         key = event.key()
@@ -140,10 +141,18 @@ class MenuListView(QtWidgets.QMenu):
     def mouse_leave_event(self, event):
         self.listview.clearSelection()
         self.last_index = QtCore.QModelIndex()
+    
+    def mouse_press_event(self, event):
+        if event.button() == Qt.LeftButton:
+            self.flag_mouse_l_pressed = True
 
     def mouse_release_event(self, event):
-        "When item is clicked w/ left mouse button close menu, emit `clicked`"
-        if event.button() == Qt.LeftButton:
+        """
+        When item is clicked w/ left mouse button close menu, emit `clicked`.
+        Check if there was left button press event inside this widget.
+        """
+        if event.button() == Qt.LeftButton and self.flag_mouse_l_pressed:
+            self.flag_mouse_l_pressed = False
             if self.last_index.isValid():
                 self.clicked.emit(self.last_index)
             self.close()
