@@ -50,9 +50,6 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.layout().setContentsMargins(4, 0, 0, 0)
         self.layout().setSpacing(0)
 
-        self.path_icon = QtWidgets.QLabel(self)
-        layout.addWidget(self.path_icon)
-
         # Edit presented path textually
         self.line_address = QtWidgets.QLineEdit(self)
         self.line_address.setFrame(False)
@@ -75,9 +72,11 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         # Hidden breadcrumbs menu button
         self.btn_root_crumb = QtWidgets.QToolButton(self)
         self.btn_root_crumb.setAutoRaise(True)
-        self.btn_root_crumb.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.btn_root_crumb.setArrowType(Qt.RightArrow)
-        self.btn_root_crumb.setStyleSheet(style_root_toolbutton)
+        # self.btn_root_crumb.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+        # self.btn_root_crumb.setArrowType(Qt.RightArrow)
+        self.btn_root_crumb.setPopupMode(self.btn_root_crumb.MenuButtonPopup)
+        self.btn_root_crumb.setStyle(self.style_crumbs)
+        # self.btn_root_crumb.setStyleSheet(style_root_toolbutton)
         self.btn_root_crumb.setMinimumSize(self.btn_root_crumb.minimumSizeHint())
         crumbs_cont_layout.addWidget(self.btn_root_crumb)
         menu = QtWidgets.QMenu(self.btn_root_crumb)  # FIXME:
@@ -299,7 +298,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         while path.parent != path:
             path = path.parent
             self._insert_crumb(path)
-        self.path_icon.setPixmap(self.get_icon(self.path_).pixmap(16, 16))
+        self.btn_root_crumb.setIcon(self.get_icon(self.path_))
         self.path_selected.emit(self.path_)
         return True
 
@@ -332,8 +331,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def crumb_hide_show(self, widget, state:bool):
         "SLOT: a breadcrumb is hidden/removed or shown"
         layout = self.crumbs_panel.layout()
-        arrow = Qt.LeftArrow if layout.count_hidden() > 0 else Qt.RightArrow
-        self.btn_root_crumb.setArrowType(arrow)
+        # arrow = Qt.LeftArrow if layout.count_hidden() > 0 else Qt.RightArrow
+        # self.btn_root_crumb.setArrowType(arrow)
         # if layout.count_hidden() > 0:
         #     ico = QtGui.QIcon("iconfinder_icon-ios7-arrow-left_211689.png")
         # else:
