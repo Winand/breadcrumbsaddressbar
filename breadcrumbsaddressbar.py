@@ -193,6 +193,22 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         from platform_win import get_path_label
         return get_path_label(drive_path.replace("/", "\\"))
 
+    @staticmethod
+    def list_network_locations():
+        "List (name, path) locations in Network Shortcuts folder on Windows"
+        HOME = QtCore.QStandardPaths.HomeLocation
+        user_folder = QtCore.QStandardPaths.writableLocation(HOME)
+        network_shortcuts = user_folder + "/AppData/Roaming/Microsoft/Windows/Network Shortcuts"
+        for i in Path(network_shortcuts).iterdir():
+            if not i.is_dir():
+                continue
+            link = Path(i) / "target.lnk"
+            if not link.exists():
+                continue
+            path = QtCore.QFileInfo(str(link)).symLinkTarget()
+            if path:  # `symLinkTarget` doesn't read e.g. FTP links
+                yield i.name, path
+
     def update_rootmenu_devices(self):
         "Init or rebuild device actions in menu"
         menu = self.btn_root_crumb.menu()
@@ -209,6 +225,12 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             action.path = path
             action.triggered.connect(self.set_path)
             self.actions_devices.append(action)
+        if self.os_type == "Windows":  # Network locations
+            for label, path in self.list_network_locations():
+                action = menu.addAction(self.get_icon(path), label)
+                action.path = path
+                action.triggered.connect(self.set_path)
+                self.actions_devices.append(action)
 
     def _browse_for_folder(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
