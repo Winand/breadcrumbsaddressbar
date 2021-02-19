@@ -29,6 +29,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.os_type = platform.system()
+
         self.style_crumbs = StyleProxy(
             QtWidgets.QStyleFactory.create(
                 QtWidgets.QApplication.instance().style().objectName()
@@ -186,6 +188,11 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             action.path = path
             action.triggered.connect(self.set_path)
 
+    def get_drive_label(self, drive_path):
+        "Try to get drive label using Shell32"
+        from platform_win import get_path_label
+        return get_path_label(drive_path.replace("/", "\\"))
+
     def update_rootmenu_devices(self):
         "Init or rebuild device actions in menu"
         menu = self.btn_root_crumb.menu()
@@ -194,8 +201,10 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
                 menu.removeAction(action)
         self.actions_devices = [menu.addSeparator()]
         for i in QtCore.QStorageInfo.mountedVolumes():  # QDir.drives():
-            path = i.rootPath()
-            caption = "%s (%s)" % (i.displayName(), path.rstrip(r"\/"))
+            path, label = i.rootPath(), i.displayName()
+            if label == path and self.os_type == "Windows":
+                label = self.get_drive_label(path)
+            caption = "%s (%s)" % (label, path.rstrip(r"\/"))
             action = menu.addAction(self.get_icon(path), caption)
             action.path = path
             action.triggered.connect(self.set_path)
