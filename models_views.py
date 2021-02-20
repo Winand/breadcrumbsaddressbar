@@ -102,9 +102,9 @@ class MenuListView(QtWidgets.QMenu):
         lv.sizeHint = self.size_hint
         lv.minimumSizeHint = self.size_hint
         lv.mousePressEvent = self.mouse_press_event
-        lv.mouseMoveEvent = self.mouse_move_event
+        lv.mouseMoveEvent = self.update_current_index
         lv.setMouseTracking(True)  # receive mouse move events
-        lv.leaveEvent = self.mouse_leave_event
+        lv.leaveEvent = self.clear_selection
         lv.mouseReleaseEvent = self.mouse_release_event
         lv.keyPressEvent = self.key_press_event
         lv.setFocusPolicy(Qt.NoFocus)  # no focus rect
@@ -134,17 +134,20 @@ class MenuListView(QtWidgets.QMenu):
             self.listview.setCurrentIndex(index)
             self.last_index = index
 
-    def mouse_move_event(self, event):
-        self.listview.clearSelection()
+    def update_current_index(self, event):
         self.last_index = self.listview.indexAt(event.pos())
+        self.listview.setCurrentIndex(self.last_index)
 
-    def mouse_leave_event(self, event):
+    def clear_selection(self, event=None):
         self.listview.clearSelection()
+        # selectionModel().clear() leaves selected item in Fusion theme
+        self.listview.setCurrentIndex(QtCore.QModelIndex())
         self.last_index = QtCore.QModelIndex()
     
     def mouse_press_event(self, event):
         if event.button() == Qt.LeftButton:
             self.flag_mouse_l_pressed = True
+            self.update_current_index(event)
 
     def mouse_release_event(self, event):
         """

@@ -305,6 +305,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         "SLOT: fill subdirectory list on menu open"
         menu = self.sender()
         self.fs_model.setPathPrefix(str(menu.parent().path) + os.path.sep)
+        menu.clear_selection()  # clear currentIndex after applying new model
 
     def set_path(self, path=None):
         """
