@@ -414,7 +414,7 @@ class StyleProxy(QtWidgets.QProxyStyle):
                 p.setClipPath(path)
                 super().drawPrimitive(self.PE_PanelButtonTool, opt, p, widget)
             # centered square
-            rc.moveTop((rc.height() - rc.width()) / 2)
+            rc.moveTop(int((rc.height() - rc.width()) / 2))
             rc.setHeight(rc.width())
             # p.setRenderHint(p.Antialiasing)
             p.drawPixmap(rc, self.arrow_pix, QtCore.QRect())
