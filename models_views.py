@@ -126,7 +126,7 @@ class MenuListView(QtWidgets.QMenu):
             row_from, row_to = 0, model.rowCount()-1
             if key == Qt.Key_Down:
                 row_from, row_to = row_to, row_from
-            if not self.last_index or self.last_index.row() == row_from:
+            if self.last_index.row() in (-1, row_from):  # no index=-1
                 index = model.index(row_to, 0)
             else:
                 shift = 1 if key == Qt.Key_Down else -1
