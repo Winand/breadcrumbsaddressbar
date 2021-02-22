@@ -220,6 +220,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             path, label = i.rootPath(), i.displayName()
             if label == path and self.os_type == "Windows":
                 label = self.get_drive_label(path)
+            elif self.os_type == "Linux" and not path.startswith("/media"):
+                continue
             caption = "%s (%s)" % (label, path.rstrip(r"\/"))
             action = menu.addAction(self.get_icon(path), caption)
             action.path = path
