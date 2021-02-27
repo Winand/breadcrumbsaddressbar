@@ -264,6 +264,12 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
                 # mysterious `QWidget` instead of `QToolButton` (Windows 7)
                 widget.setStyle(None)
                 widget.deleteLater()
+    
+    @staticmethod
+    def path_title(path: Path):
+        "Get folder name or drive name"
+        # FIXME: C:\ has no name. Use rstrip on Windows only?
+        return path.name or str(path).upper().rstrip(os.path.sep)
 
     def _insert_crumb(self, path):
         btn = QtWidgets.QToolButton(self.crumbs_panel)
@@ -272,9 +278,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         btn.setStyle(self.style_crumbs)
         btn.mouseMoveEvent = self.crumb_mouse_move
         btn.setMouseTracking(True)
-        # FIXME: C:\ has no name. Use rstrip on Windows only?
-        crumb_text = path.name or str(path).upper().rstrip(os.path.sep)
-        btn.setText(crumb_text)
+        btn.setText(self.path_title(path))
         btn.path = path
         btn.clicked.connect(self.crumb_clicked)
         menu = MenuListView(btn)
