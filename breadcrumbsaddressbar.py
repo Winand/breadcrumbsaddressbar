@@ -19,6 +19,7 @@ else:
     from stylesheet import style_root_toolbutton
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
+HISTORY_LEN = 10  # max items in history
 
 
 class BreadcrumbsAddressBar(QtWidgets.QFrame):
@@ -51,6 +52,16 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.setFrameShape(self.StyledPanel)
         self.layout().setContentsMargins(4, 0, 0, 0)
         self.layout().setSpacing(0)
+
+        self.btn_back = QtWidgets.QToolButton(self)
+        # self.btn_back.setAutoRaise(True)
+        self.btn_back.setText("<")
+        self.btn_back.setToolTip("Back")
+        self.btn_back.clicked.connect(self.go_back)
+        layout.addWidget(self.btn_back)
+        menu = QtWidgets.QMenu(self.btn_back)
+        menu.aboutToShow.connect(self.show_history_menu)
+        self.btn_back.setMenu(menu)
 
         self.path_icon = QtWidgets.QLabel(self)
         layout.addWidget(self.path_icon)
@@ -116,6 +127,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
         self.ignore_resize = False
         self.path_ = None
+        self.history, self.history_cursor = [], 0
         self.set_path(Path())
 
     @staticmethod
@@ -338,8 +350,39 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             path = path.parent
             self._insert_crumb(path)
         self.path_icon.setPixmap(self.get_icon(self.path_).pixmap(16, 16))
+        self.update_history(self.path_)
         self.path_selected.emit(self.path_)
         return True
+
+    def update_history(self, new_path):
+        if not self.history or self.history[self.history_cursor] != new_path:
+            del self.history[:self.history_cursor]
+            self.history.insert(0, new_path)
+            self.history_cursor = 0
+            if len(self.history) > HISTORY_LEN:
+                del self.history[HISTORY_LEN]
+
+    def go_back(self):
+        prev_path_idx = self.history_cursor + 1
+        if prev_path_idx < len(self.history):
+            self.set_path_from_history(prev_path_idx)
+    
+    def set_path_from_history(self, index=None):
+        self.history_cursor = \
+            index or self.sender().parent().actions().index(self.sender())
+        self.set_path(self.history[index] if index else None)
+
+    def show_history_menu(self):
+        menu = self.sender()
+        menu.clear()
+        for i, p in enumerate(self.history):
+            action = menu.addAction(self.get_icon(p), self.path_title(p),
+                                    self.set_path_from_history)
+            action.path = p
+            if self.history_cursor == i:
+                f = action.font()
+                f.setBold(True)
+                action.setFont(f)
 
     def _cancel_edit(self):
         "Set edit line text back to current path and switch to view mode"
