@@ -184,13 +184,18 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
                 ("Documents", QSP.writableLocation(QSP.DocumentsLocation)),
                 ("Downloads", QSP.writableLocation(QSP.DownloadLocation)),
                 ):
+            if self.os_type == "Windows":
+                name = self.get_path_label(path)
             action = menu.addAction(self.get_icon(path), name)
             action.path = path
             action.triggered.connect(self.set_path)
 
-    def get_drive_label(self, drive_path):
-        "Try to get drive label using Shell32"
-        from platform_win import get_path_label
+    def get_path_label(self, drive_path):
+        "Try to get path label using Shell32 on Windows"
+        if __package__:
+            from .platform_win import get_path_label
+        else:
+            from platform_win import get_path_label
         return get_path_label(drive_path.replace("/", "\\"))
 
     @staticmethod
@@ -219,7 +224,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         for i in QtCore.QStorageInfo.mountedVolumes():  # QDir.drives():
             path, label = i.rootPath(), i.displayName()
             if label == path and self.os_type == "Windows":
-                label = self.get_drive_label(path)
+                label = self.get_path_label(path)
             elif self.os_type == "Linux" and not path.startswith("/media"):
                 continue
             caption = "%s (%s)" % (label, path.rstrip(r"\/"))
