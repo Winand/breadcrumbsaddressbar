@@ -74,6 +74,10 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         crumbs_cont_layout.setSpacing(0)
         layout.addWidget(self.crumbs_container)
 
+        # Monitor breadcrumbs under cursor and switch popup menus
+        self.mouse_pos_timer = QtCore.QTimer(self)
+        self.mouse_pos_timer.timeout.connect(self.mouse_pos_timer_event)
+
         # Hidden breadcrumbs menu button
         self.btn_root_crumb = QtWidgets.QToolButton(self)
         self.btn_root_crumb.setAutoRaise(True)
@@ -84,6 +88,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         crumbs_cont_layout.addWidget(self.btn_root_crumb)
         menu = QtWidgets.QMenu(self.btn_root_crumb)  # FIXME:
         menu.aboutToShow.connect(self._hidden_crumbs_menu_show)
+        menu.aboutToHide.connect(self.mouse_pos_timer.stop)
         self.btn_root_crumb.setMenu(menu)
         self.init_rootmenu_places(menu)  # Desktop, Home, Downloads...
         self.update_rootmenu_devices()  # C:, D:...
@@ -158,6 +163,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
     def _hidden_crumbs_menu_show(self):
         "SLOT: fill menu with hidden breadcrumbs list"
+        self.mouse_pos_timer.start(100)
         menu = self.sender()
         if hasattr(self, 'actions_hidden_crumbs'):
             for action in self.actions_hidden_crumbs:
@@ -291,6 +297,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         menu.setModel(self.fs_model)
         menu.clicked.connect(self.crumb_menuitem_clicked)
         menu.activated.connect(self.crumb_menuitem_clicked)
+        menu.aboutToHide.connect(self.mouse_pos_timer.stop)
         btn.setMenu(menu)
         self.crumbs_panel.layout().insertWidget(0, btn)
         btn.setMinimumSize(btn.minimumSizeHint())  # fixed size breadcrumbs
@@ -317,6 +324,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         menu = self.sender()
         self.fs_model.setPathPrefix(str(menu.parent().path) + os.path.sep)
         menu.clear_selection()  # clear currentIndex after applying new model
+        self.mouse_pos_timer.start(100)
 
     def set_path(self, path=None):
         """
@@ -387,6 +395,18 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         # print(self.layout().minimumSize().width())
         return QtCore.QSize(150, self.line_address.height())
 
+    def mouse_pos_timer_event(self):
+        "Monitor breadcrumbs under cursor and switch popup menus"
+        pos = QtGui.QCursor.pos()
+        app = QtCore.QCoreApplication.instance()
+        w = app.widgetAt(pos)
+        active_menu = app.activePopupWidget()
+        if (w and isinstance(w, QtWidgets.QToolButton) and
+            w is not active_menu.parent() and
+            (w is self.btn_root_crumb or w.parent() is self.crumbs_panel)
+        ):
+            active_menu.close()
+            w.showMenu()
 
 class StyleProxy(QtWidgets.QProxyStyle):
     win_modern = ("windowsxp", "windowsvista")
