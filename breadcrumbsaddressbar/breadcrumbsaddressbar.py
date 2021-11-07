@@ -196,13 +196,14 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             action.path = path
             action.triggered.connect(self.set_path)
 
-    def get_path_label(self, drive_path):
+    @staticmethod
+    def get_path_label(drive_path):
         "Try to get path label using Shell32 on Windows"
         if __package__:
             from .platform_win import get_path_label
         else:
             from platform_win import get_path_label
-        return get_path_label(drive_path.replace("/", "\\"))
+        return get_path_label(str(drive_path).replace("/", "\\"))
 
     @staticmethod
     def list_network_locations():
@@ -276,11 +277,12 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
                 widget.setStyle(None)
                 widget.deleteLater()
     
-    @staticmethod
-    def path_title(path: Path):
+    # @staticmethod
+    def path_title(self, path: Path):
         "Get folder name or drive name"
         # FIXME: C:\ has no name. Use rstrip on Windows only?
-        return path.name or str(path).upper().rstrip(os.path.sep)
+        label = self.get_path_label(path)
+        return label or path.name or str(path).upper().rstrip(os.path.sep)
 
     def _insert_crumb(self, path):
         btn = QtWidgets.QToolButton(self.crumbs_panel)
