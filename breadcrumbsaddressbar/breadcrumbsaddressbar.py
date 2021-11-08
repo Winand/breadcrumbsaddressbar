@@ -462,25 +462,19 @@ class StyleProxy(QtWidgets.QProxyStyle):
 
 
 if __name__ == '__main__':
-    from qtapp import QtForm
-
     class Form(QtWidgets.QDialog):
-        _layout_ = QtWidgets.QHBoxLayout
-        _loop_ = True
-
         def perm_err(self, path):
             print('perm err', path)
 
         def path_err(self, path):
             print('path err', path)
-        
-        def b_clicked(self):
-            pass
 
         def __init__(self):  # pylint: disable=super-init-not-called
             print(QtWidgets.QStyleFactory.keys())
             # style = QtWidgets.QStyleFactory.create("fusion")
             # self.app.setStyle(style)
+            super().__init__()
+            self.setLayout(QtWidgets.QHBoxLayout())
             self.address = BreadcrumbsAddressBar()
             self.layout().addWidget(self.address)
             self.address.listdir_error.connect(self.perm_err)
@@ -497,5 +491,6 @@ if __name__ == '__main__':
                     return False, 0
                 self.nativeEvent = nativeEvent
 
-
-    QtForm(Form)
+    app = QtWidgets.QApplication([])
+    form = Form()
+    form.exec_()
