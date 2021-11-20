@@ -8,10 +8,25 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Docker: Python - Current file",
+            "name": "Docker-WSLg: Python - Current file",
             "type": "docker",
             "request": "launch",
             "preLaunchTask": "docker-run: debug",
+            "python": {
+                "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder}",
+                        "remoteRoot": "/app"
+                    }
+                ],
+                "projectType": "general"
+            }
+        },
+        {
+            "name": "Docker-XServer: Python - Current file",
+            "type": "docker",
+            "request": "launch",
+            "preLaunchTask": "docker-run: debug (XServer)",
             "python": {
                 "pathMappings": [
                     {

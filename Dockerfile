@@ -20,7 +20,6 @@ RUN apt update && apt install -y libxrender1 libxcb-render0 libxcb-render-util0 
     libx11-xcb1 libsm6 libice6 libglibd-2.0-0
 # Additional requirements
 RUN apt install -y libgl1 libxcb-xinerama0 libdbus-1-3
-ENV DISPLAY=host.docker.internal:0.0
 ###############################################################################
 
 WORKDIR /app

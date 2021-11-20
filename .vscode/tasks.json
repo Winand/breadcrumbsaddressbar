@@ -13,6 +13,8 @@
 			}
 		},
 		{
+			// WSLg https://github.com/microsoft/wslg
+			// Needs `wsl_distro` to be specified in `settings.json`!!
 			"type": "docker-run",
 			"label": "docker-run: debug",
 			"dependsOn": [
@@ -21,6 +23,48 @@
 			"python": {
 				"args": ["${relativeFile}"],
 				"file": "docker_import.py"
+			},
+			"dockerRun": {
+				// https://code.visualstudio.com/docs/containers/reference#_dockerrun-object-properties
+				"volumes": [
+					{
+						"localPath": "\\\\wsl.localhost\\${config:wsl_distro}\\mnt\\wslg",
+						"containerPath": "/mnt/wslg"
+					},
+					{
+						// https://unix.stackexchange.com/questions/196677/what-is-tmp-x11-unix
+						"localPath": "\\\\wsl.localhost\\${config:wsl_distro}\\tmp\\.X11-unix",
+						"containerPath": "/tmp/.X11-unix"
+					},
+					{
+						"localPath": "\\\\wsl.localhost\\${config:wsl_distro}\\usr\\lib\\wsl",
+						"containerPath": "/usr/lib/wsl"
+					}
+				],
+				"env": {
+					"DISPLAY": ":0",
+					"WAYLAND_DISPLAY": "wayland-0",
+					"XDG_RUNTIME_DIR": "/mnt/wslg/runtime-dir",
+					"PULSE_SERVER": "/mnt/wslg/PulseServer",
+					"LD_LIBRARY_PATH": "/usr/lib/wsl/lib"
+				}
+			}
+		},
+		{
+			// XServer
+			"type": "docker-run",
+			"label": "docker-run: debug (XServer)",
+			"dependsOn": [
+				"docker-build"
+			],
+			"python": {
+				"args": ["${relativeFile}"],
+				"file": "docker_import.py"
+			},
+			"dockerRun": {
+				"env": {
+					"DISPLAY": "host.docker.internal:0.0"
+				}
 			}
 		}
 	]
