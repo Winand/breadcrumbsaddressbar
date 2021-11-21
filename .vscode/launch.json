@@ -21,6 +21,8 @@
                 ],
                 "projectType": "general"
             }
+            // https://github.com/microsoft/vscode-docker/issues/3200
+            // , "removeContainerAfterDebug": false
         },
         {
             "name": "Docker-XServer: Python - Current file",

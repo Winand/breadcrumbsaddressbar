@@ -48,6 +48,8 @@
 					"PULSE_SERVER": "/mnt/wslg/PulseServer",
 					"LD_LIBRARY_PATH": "/usr/lib/wsl/lib"
 				}
+				// https://github.com/microsoft/vscode-docker/issues/3200
+				// , "remove": false
 			}
 		},
 		{

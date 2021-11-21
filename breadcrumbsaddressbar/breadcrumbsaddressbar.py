@@ -232,6 +232,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             if label == path and self.os_type == "Windows":
                 label = self.get_path_label(path)
             elif self.os_type == "Linux" and not path.startswith("/media"):
+                # Add to list only volumes in /media
                 continue
             caption = "%s (%s)" % (label, path.rstrip(r"\/"))
             action = menu.addAction(self.get_icon(path), caption)
