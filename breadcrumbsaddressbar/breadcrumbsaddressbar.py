@@ -457,38 +457,3 @@ class StyleProxy(QtWidgets.QProxyStyle):
             ):
             rc.adjust(-2, 0, 0, 0)  # cut 2 left pixels to create flat edge
         return rc
-
-
-if __name__ == '__main__':
-    class Form(QtWidgets.QDialog):
-        def perm_err(self, path):
-            print('perm err', path)
-
-        def path_err(self, path):
-            print('path err', path)
-
-        def __init__(self):  # pylint: disable=super-init-not-called
-            print(QtWidgets.QStyleFactory.keys())
-            # style = QtWidgets.QStyleFactory.create("fusion")
-            # self.app.setStyle(style)
-            super().__init__()
-            self.setLayout(QtWidgets.QHBoxLayout())
-            self.address = BreadcrumbsAddressBar()
-            self.layout().addWidget(self.address)
-            self.address.listdir_error.connect(self.perm_err)
-            self.address.path_error.connect(self.path_err)
-
-            if platform.system() == "Windows":
-                from platform_win import parse_message, event_device_connection
-                def nativeEvent(eventType, message):
-                    msg = parse_message(message)
-                    devices = event_device_connection(msg)
-                    if devices:
-                        print("insert/remove device")
-                        self.address.update_rootmenu_devices()
-                    return False, 0
-                self.nativeEvent = nativeEvent
-
-    app = QtWidgets.QApplication([])
-    form = Form()
-    form.exec_()
