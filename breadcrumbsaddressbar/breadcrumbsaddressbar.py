@@ -3,20 +3,17 @@ Qt navigation bar with breadcrumbs
 Andrey Makarov, 2019
 """
 
+import os
 import platform
 from pathlib import Path
-import os
 from typing import Union
-from qtpy import QtWidgets, QtGui, QtCore
+
+from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
-if __package__:  # https://stackoverflow.com/a/28151907
-    from .models_views import FilenameModel, MenuListView
-    from .layouts import LeftHBoxLayout
-    from .stylesheet import style_root_toolbutton
-else:
-    from models_views import FilenameModel, MenuListView
-    from layouts import LeftHBoxLayout
-    from stylesheet import style_root_toolbutton
+
+from .layouts import LeftHBoxLayout
+from .models_views import FilenameModel, MenuListView
+from .stylesheet import style_root_toolbutton
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
 
