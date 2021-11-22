@@ -3,11 +3,11 @@ import platform
 from qtpy import QtWidgets
 
 from breadcrumbsaddressbar import BreadcrumbsAddressBar
-from breadcrumbsaddressbar.platform_common import if_platform
+from breadcrumbsaddressbar.platform.common import if_platform
 
 if platform.system() == "Windows":
-    from breadcrumbsaddressbar.platform_win import (event_device_connection,
-                                                    parse_message)
+    from breadcrumbsaddressbar.platform.windows import (
+        event_device_connection, parse_message)
 
 
 if __name__ == '__main__':

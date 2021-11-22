@@ -15,6 +15,9 @@ from .layouts import LeftHBoxLayout
 from .models_views import FilenameModel, MenuListView
 from .stylesheet import style_root_toolbutton
 
+if platform.system() == "Windows":
+    from .platform.windows import get_path_label
+
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
 
 
@@ -195,10 +198,6 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
     def get_path_label(self, drive_path):
         "Try to get path label using Shell32 on Windows"
-        if __package__:
-            from .platform_win import get_path_label
-        else:
-            from platform_win import get_path_label
         return get_path_label(drive_path.replace("/", "\\"))
 
     @staticmethod
