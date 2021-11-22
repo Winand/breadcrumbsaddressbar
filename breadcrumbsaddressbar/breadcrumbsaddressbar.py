@@ -11,6 +11,7 @@ from typing import Union
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
+from .backend.filesystem import Filesystem
 from .layouts import LeftHBoxLayout
 from .models_views import FilenameModel, MenuListView
 from .stylesheet import style_root_toolbutton
@@ -40,8 +41,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
         layout = QtWidgets.QHBoxLayout(self)
 
-        self.file_ico_prov = QtWidgets.QFileIconProvider()
-        self.fs_model = FilenameModel('dirs', icon_provider=self.get_icon)
+        self.backend = Filesystem()
+        self.fs_model = FilenameModel('dirs', icon_provider=self.backend.get_icon)
 
         pal = self.palette()
         pal.setColor(QtGui.QPalette.Background,
@@ -139,17 +140,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
     def get_icon(self, path: Union[str, Path]):
         "Path -> QIcon"
-        fileinfo = QtCore.QFileInfo(str(path))
-        dat = self.file_ico_prov.icon(fileinfo)
-        if fileinfo.isHidden():
-            pmap = QtGui.QPixmap(*TRANSP_ICON_SIZE)
-            pmap.fill(Qt.transparent)
-            painter = QtGui.QPainter(pmap)
-            painter.setOpacity(0.5)
-            dat.paint(painter, 0, 0, *TRANSP_ICON_SIZE)
-            painter.end()
-            dat = QtGui.QIcon(pmap)
-        return dat
+        return self.backend.get_icon(path)
 
     def line_address_contextMenuEvent(self, event):
         self.line_address_context_menu_flag = True
@@ -329,16 +320,15 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         Returns `False` if path does not exist or permission error.
         Can be used as a SLOT: `sender().path` is used if `path` is `None`)
         """
-        path, emit_err = Path(path or self.sender().path), None
-        try:  # C: -> C:\, folder\..\folder -> folder
-            path = path.resolve()
-        except PermissionError:
-            emit_err = self.listdir_error
-        if not path.exists():
-            emit_err = self.path_error
         self._cancel_edit()  # exit edit mode
-        if emit_err:  # permission error or path does not exist
-            emit_err.emit(path)
+        path = Path(path or self.sender().path)
+        try:
+            path = self.backend.check_path(path)
+        except PermissionError:
+            self.listdir_error.emit(path)  # permission error
+            return False
+        except FileNotFoundError:
+            self.path_error.emit(path)  # path does not exist
             return False
         self._clear_crumbs()
         self.path_ = path
