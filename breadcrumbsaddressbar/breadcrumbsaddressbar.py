@@ -28,7 +28,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     path_error = QtCore.Signal(Path)  # entered path does not exist
     path_selected = QtCore.Signal(Path)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, backend=Filesystem):
         super().__init__(parent)
         self.os_type = platform.system()
 
@@ -41,8 +41,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
         layout = QtWidgets.QHBoxLayout(self)
 
-        self.backend = Filesystem()
-        self.fs_model = FilenameModel('dirs', icon_provider=self.backend.get_icon)
+        self.backend = backend()
 
         pal = self.palette()
         pal.setColor(QtGui.QPalette.Background,
@@ -65,7 +64,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.line_address.contextMenuEvent = self.line_address_contextMenuEvent
         layout.addWidget(self.line_address)
         # Add QCompleter to address line
-        completer = self.init_completer(self.line_address, self.fs_model)
+        completer = self.backend.init_completer(self.line_address)
         completer.activated.connect(self.set_path)
 
         # Container for `btn_crumbs_hidden`, `crumbs_panel`, `switch_space`
@@ -124,24 +123,6 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.path_ = None
         self.set_path(Path())
 
-    @staticmethod
-    def init_completer(edit_widget, model):
-        "Init QCompleter to work with filesystem"
-        completer = QtWidgets.QCompleter(edit_widget)
-        completer.setCaseSensitivity(Qt.CaseInsensitive)
-        completer.setModel(model)
-        # Optimize performance https://stackoverflow.com/a/33454284/1119602
-        popup = completer.popup()
-        popup.setUniformItemSizes(True)
-        popup.setLayoutMode(QtWidgets.QListView.Batched)
-        edit_widget.setCompleter(completer)
-        edit_widget.textEdited.connect(model.setPathPrefix)
-        return completer
-
-    def get_icon(self, path: Union[str, Path]):
-        "Path -> QIcon"
-        return self.backend.get_icon(path)
-
     def line_address_contextMenuEvent(self, event):
         self.line_address_context_menu_flag = True
         QtWidgets.QLineEdit.contextMenuEvent(self.line_address, event)
@@ -163,7 +144,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
         first_action = menu.actions()[0]  # places section separator
         for i in self.crumbs_panel.layout().widgets('hidden'):
-            action = QtWidgets.QAction(self.get_icon(i.path), i.text(), menu)
+            action = QtWidgets.QAction(self.backend.get_icon(i.path), i.text(), menu)
             action.path = i.path
             action.triggered.connect(self.set_path)
             menu.insertAction(first_action, action)
@@ -183,7 +164,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
                 ):
             if self.os_type == "Windows":
                 name = self.get_path_label(path)
-            action = menu.addAction(self.get_icon(path), name)
+            action = menu.addAction(self.backend.get_icon(path), name)
             action.path = path
             action.triggered.connect(self.set_path)
 
@@ -222,13 +203,13 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
                 # Add to list only volumes in /media
                 continue
             caption = "%s (%s)" % (label, path.rstrip(r"\/"))
-            action = menu.addAction(self.get_icon(path), caption)
+            action = menu.addAction(self.backend.get_icon(path), caption)
             action.path = path
             action.triggered.connect(self.set_path)
             self.actions_devices.append(action)
         if self.os_type == "Windows":  # Network locations
             for label, path in self.list_network_locations():
-                action = menu.addAction(self.get_icon(path), label)
+                action = menu.addAction(self.backend.get_icon(path), label)
                 action.path = path
                 action.triggered.connect(self.set_path)
                 self.actions_devices.append(action)
@@ -282,7 +263,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         btn.clicked.connect(self.crumb_clicked)
         menu = MenuListView(btn)
         menu.aboutToShow.connect(self.crumb_menu_show)
-        menu.setModel(self.fs_model)
+        menu.setModel(self.backend.fs_model)
         menu.clicked.connect(self.crumb_menuitem_clicked)
         menu.activated.connect(self.crumb_menuitem_clicked)
         menu.aboutToHide.connect(self.mouse_pos_timer.stop)
@@ -310,7 +291,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def crumb_menu_show(self):
         "SLOT: fill subdirectory list on menu open"
         menu = self.sender()
-        self.fs_model.setPathPrefix(str(menu.parent().path) + os.path.sep)
+        self.backend.fs_model.setPathPrefix(str(menu.parent().path) + os.path.sep)
         menu.clear_selection()  # clear currentIndex after applying new model
         self.mouse_pos_timer.start(100)
 
@@ -337,7 +318,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         while path.parent != path:
             path = path.parent
             self._insert_crumb(path)
-        self.path_icon.setPixmap(self.get_icon(self.path_).pixmap(16, 16))
+        self.path_icon.setPixmap(self.backend.get_icon(self.path_).pixmap(16, 16))
         self.path_selected.emit(self.path_)
         return True
 
