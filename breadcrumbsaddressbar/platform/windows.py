@@ -1,6 +1,11 @@
-import ctypes, pythoncom
+import ctypes
 from ctypes import POINTER, Structure, byref
-from ctypes.wintypes import DWORD, WORD, USHORT, BYTE, MSG
+from ctypes.wintypes import BYTE, DWORD, MSG, USHORT, WORD
+from pathlib import Path
+
+import pythoncom
+from win32comext.shell import shell  # https://github.com/microsoft/pylance-release/issues/1268#issuecomment-845278198
+
 shell32 = ctypes.windll.shell32
 ole32 = ctypes.windll.ole32
 
@@ -54,6 +59,7 @@ class SHITEMID(Structure):
 class ITEMIDLIST(Structure):
     _fields_ = [
         ("mkid", SHITEMID)]
+# SIGDN enum https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/ne-shobjidl_core-sigdn
 NORMALDISPLAY = 0x00000000  # Samsung Evo 850 (C:)
 PARENTRELATIVEPARSING = 0x80018001  # C:
 DESKTOPABSOLUTEPARSING = 0x80028000  # C:\
@@ -79,3 +85,26 @@ def get_path_label(path):
     if ret:
         raise Exception("Exception %d in SHGetNameFromIDList" % ret)
     return name.value
+
+
+def read_link(filename: Path, filesystem_only: bool=True):
+    """
+    Read target path from .lnk file
+    `filename` - path to a link file
+    `filesystem_only` - only file system paths (default True), e.g. FTP links fail
+
+    http://timgolden.me.uk/python/win32_how_do_i/read-a-shortcut.html
+    Faster than CreateShortCut (WScript.Shell) https://stackoverflow.com/a/571573
+    Also faster than QFileInfo(link).symLinkTarget()
+    """
+    link = pythoncom.CoCreateInstance(
+        shell.CLSID_ShellLink, None, pythoncom.CLSCTX_INPROC_SERVER,
+        shell.IID_IShellLink
+    )
+    link.QueryInterface(pythoncom.IID_IPersistFile).Load(str(filename))
+    # GetPath returns the name and a WIN32_FIND_DATA structure
+    name, _ = link.GetPath(shell.SLGP_UNCPRIORITY)
+    if not name and not filesystem_only:
+        # https://stackoverflow.com/a/46196480
+        name = shell.SHGetNameFromIDList(link.GetIDList(), DESKTOPABSOLUTEPARSING)
+    return name
