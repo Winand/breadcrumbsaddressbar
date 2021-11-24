@@ -13,11 +13,8 @@ from qtpy.QtCore import Qt
 
 from .backend.filesystem import Filesystem
 from .layouts import LeftHBoxLayout
-from .models_views import FilenameModel, MenuListView
+from .models_views import MenuListView
 from .stylesheet import style_root_toolbutton
-
-if platform.system() == "Windows":
-    from .platform.windows import get_path_label
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
 
@@ -154,23 +151,10 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def init_rootmenu_places(self, menu):
         "Init common places actions in menu"
         menu.addSeparator()
-        QSP = QtCore.QStandardPaths
-        uname = os.environ.get('USER') or os.environ.get('USERNAME') or "Home"
-        for name, path in (
-                ("Desktop", QSP.writableLocation(QSP.DesktopLocation)),
-                (uname, QSP.writableLocation(QSP.HomeLocation)),
-                ("Documents", QSP.writableLocation(QSP.DocumentsLocation)),
-                ("Downloads", QSP.writableLocation(QSP.DownloadLocation)),
-                ):
-            if self.os_type == "Windows":
-                name = self.get_path_label(path)
+        for name, path in self.backend.get_places():
             action = menu.addAction(self.backend.get_icon(path), name)
             action.path = path
             action.triggered.connect(self.set_path)
-
-    def get_path_label(self, drive_path):
-        "Try to get path label using Shell32 on Windows"
-        return get_path_label(drive_path.replace("/", "\\"))
 
     def update_rootmenu_devices(self):
         "Init or rebuild device actions in menu"
@@ -179,26 +163,11 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             for action in self.actions_devices:
                 menu.removeAction(action)
         self.actions_devices = [menu.addSeparator()]
-        for i in QtCore.QStorageInfo.mountedVolumes():  # QDir.drives():
-            path, label = i.rootPath(), i.displayName()
-            if label == path and self.os_type == "Windows":
-                label = self.get_path_label(path)
-            elif self.os_type == "Linux" and not path.startswith("/media"):
-                # Add to list only volumes in /media
-                continue
-            caption = "%s (%s)" % (label, path.rstrip(r"\/"))
-            action = menu.addAction(self.backend.get_icon(path), caption)
+        for label, path, icon in self.backend.get_devices():
+            action = menu.addAction(icon, label)
             action.path = path
             action.triggered.connect(self.set_path)
             self.actions_devices.append(action)
-        try:  # Network locations
-            for label, path, icon in self.backend.list_network_locations():
-                action = menu.addAction(icon, label)
-                action.path = path
-                action.triggered.connect(self.set_path)
-                self.actions_devices.append(action)
-        except NotImplementedError:
-            pass
 
     def _browse_for_folder(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
