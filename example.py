@@ -1,9 +1,11 @@
+from pathlib import Path
 import platform
 
 from qtpy import QtWidgets
 
 from breadcrumbsaddressbar import BreadcrumbsAddressBar
 from breadcrumbsaddressbar.platform.common import if_platform
+from breadcrumbsaddressbar.backend.yamldict import YamlDict
 
 if platform.system() == "Windows":
     from breadcrumbsaddressbar.platform.windows import (
@@ -24,7 +26,7 @@ if __name__ == '__main__':
             # self.app.setStyle(style)
             super().__init__()
             self.setLayout(QtWidgets.QHBoxLayout())
-            self.address = BreadcrumbsAddressBar()
+            self.address = BreadcrumbsAddressBar(backend=YamlDict(Path("model_data.yaml")))
             self.layout().addWidget(self.address)
             self.address.listdir_error.connect(self.perm_err)
             self.address.path_error.connect(self.path_err)

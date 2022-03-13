@@ -25,7 +25,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     path_error = QtCore.Signal(Path)  # entered path does not exist
     path_selected = QtCore.Signal(Path)
 
-    def __init__(self, parent=None, backend=Filesystem):
+    def __init__(self, parent=None, backend=None):
         super().__init__(parent)
         self.os_type = platform.system()
 
@@ -38,7 +38,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
         layout = QtWidgets.QHBoxLayout(self)
 
-        self.backend = backend()
+        self.backend = backend or Filesystem()
 
         pal = self.palette()
         pal.setColor(QtGui.QPalette.Background,
