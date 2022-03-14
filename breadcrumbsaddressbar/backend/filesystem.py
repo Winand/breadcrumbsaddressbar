@@ -6,7 +6,7 @@ from typing import Union as U
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
-from ..models_views import FilenameModel
+from .models import FilenameModel
 from ..platform.common import if_platform
 
 if platform.system() == "Windows":

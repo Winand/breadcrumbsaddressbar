@@ -13,7 +13,7 @@ from qtpy.QtCore import Qt
 
 from .backend.filesystem import Filesystem
 from .layouts import LeftHBoxLayout
-from .models_views import MenuListView
+from .views import MenuListView
 from .stylesheet import style_root_toolbutton
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
