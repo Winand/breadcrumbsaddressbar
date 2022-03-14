@@ -17,6 +17,7 @@ from .models_views import MenuListView
 from .stylesheet import style_root_toolbutton
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
+cwd_path = Path()  # working dir (.) https://stackoverflow.com/q/51330297
 
 
 class BreadcrumbsAddressBar(QtWidgets.QFrame):
@@ -270,9 +271,10 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.path_ = path
         self.line_address.setText(str(path))
         self._insert_crumb(path)
-        while path.parent != path:
-            path = path.parent
-            self._insert_crumb(path)
+        for i in path.parents:
+            if i == cwd_path:
+                break
+            self._insert_crumb(i)
         self.path_icon.setPixmap(self.backend.get_icon(self.path_).pixmap(16, 16))
         self.path_selected.emit(self.path_)
         return True
