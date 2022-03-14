@@ -3,6 +3,7 @@ Qt navigation bar with breadcrumbs
 Andrey Makarov, 2019
 """
 
+import logging
 import os
 import platform
 from pathlib import Path
@@ -61,9 +62,12 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.line_address.focusOutEvent = self.line_address_focusOutEvent
         self.line_address.contextMenuEvent = self.line_address_contextMenuEvent
         layout.addWidget(self.line_address)
-        # Add QCompleter to address line
-        completer = self.backend.init_completer(self.line_address)
-        completer.activated.connect(self.set_path)
+        try:  # Add QCompleter to address line
+            completer = self.backend.init_completer(self.line_address)
+            completer.activated.connect(self.set_path)
+        except NotImplementedError:
+            logging.warning("Completer not implemented for %s provider",
+                            self.backend.__class__.__name__)
 
         # Container for `btn_crumbs_hidden`, `crumbs_panel`, `switch_space`
         self.crumbs_container = QtWidgets.QWidget(self)
@@ -152,10 +156,14 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def init_rootmenu_places(self, menu):
         "Init common places actions in menu"
         menu.addSeparator()
-        for name, path in self.backend.get_places():
-            action = menu.addAction(self.backend.get_icon(path), name)
-            action.path = path
-            action.triggered.connect(self.set_path)
+        try:
+            for name, path in self.backend.get_places():
+                action = menu.addAction(self.backend.get_icon(path), name)
+                action.path = path
+                action.triggered.connect(self.set_path)
+        except NotImplementedError:
+            logging.warning("Places not implemented for %s provider",
+                            self.backend.__class__.__name__)
 
     def update_rootmenu_devices(self):
         "Init or rebuild device actions in menu"
@@ -164,11 +172,15 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
             for action in self.actions_devices:
                 menu.removeAction(action)
         self.actions_devices = [menu.addSeparator()]
-        for label, path, icon in self.backend.get_devices():
-            action = menu.addAction(icon, label)
-            action.path = path
-            action.triggered.connect(self.set_path)
-            self.actions_devices.append(action)
+        try:
+            for label, path, icon in self.backend.get_devices():
+                action = menu.addAction(icon or QtGui.QIcon(), label)
+                action.path = path
+                action.triggered.connect(self.set_path)
+                self.actions_devices.append(action)
+        except NotImplementedError:
+            logging.warning("Device list is not implemented for %s provider",
+                            self.backend.__class__.__name__)
 
     def _browse_for_folder(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
