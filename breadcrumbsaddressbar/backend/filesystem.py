@@ -1,21 +1,25 @@
 import os
 import platform
 from pathlib import Path
-from typing import Union as U
+from typing import Union as U, Final
 
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
+from .interface import DataProvider
 from .models import FilenameModel
 from ..platform.common import if_platform
 
 if platform.system() == "Windows":
     from ..platform.windows import get_path_label, read_link
 
-TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
+TRANSP_ICON_SIZE: Final = 40, 40  # px, size of generated semi-transparent icons
 
 
-class Filesystem:
+class Filesystem(DataProvider):
+    """
+    Local filesystem provider
+    """
     def __init__(self):
         self.file_ico_prov = QtWidgets.QFileIconProvider()
         # Custom icons cause a performance impact https://doc.qt.io/qt-5/qfileiconprovider.html#Option-enum
@@ -24,6 +28,9 @@ class Filesystem:
         self.os_type = platform.system()
 
     def check_path(self, path: Path):
+        """
+        Returns resolved path or raises FileNotFoundError if path is not valid
+        """
         # C: -> C:\, folder\..\folder -> folder
         path = path.resolve()  # may raise PermissionError
         if not path.exists():
@@ -84,7 +91,7 @@ class Filesystem:
                 name = self._get_path_label(path)
             yield name, path
 
-    def init_completer(self, edit_widget):
+    def init_completer(self, edit_widget: QtWidgets.QWidget):
         "Init QCompleter to work with filesystem"
         completer = QtWidgets.QCompleter(edit_widget)
         completer.setCaseSensitivity(Qt.CaseInsensitive)

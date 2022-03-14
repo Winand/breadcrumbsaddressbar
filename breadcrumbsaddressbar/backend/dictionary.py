@@ -4,8 +4,13 @@ from pathlib import Path
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
+from .interface import DataProvider
 
-class Dictionary:
+
+class Dictionary(DataProvider):
+    """
+    Dictionary data provider
+    """
     def __init__(self, data: dict):
         self.fs_model = DataModel(data)
 
@@ -25,9 +30,6 @@ class Dictionary:
 
     def get_icon(self, path):
         return QtGui.QIcon()
-
-    def get_places(self):
-        raise NotImplementedError
 
     def init_completer(self, edit_widget):
         "Init QCompleter to work with filesystem"
