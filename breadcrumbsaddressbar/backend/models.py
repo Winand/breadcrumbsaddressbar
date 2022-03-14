@@ -4,8 +4,10 @@ from pathlib import Path
 from qtpy import QtCore, QtWidgets
 from qtpy.QtCore import Qt
 
+from .interface import DataModel
 
-class FilenameModel(QtCore.QStringListModel):
+
+class FilenameModel(DataModel):
     """
     Model used by QCompleter for file name completions.
     Constructor options:

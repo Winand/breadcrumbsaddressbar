@@ -4,7 +4,7 @@ from pathlib import Path
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
-from .interface import DataProvider
+from .interface import DataModel as _DataModel, DataProvider
 
 
 class Dictionary(DataProvider):
@@ -28,9 +28,6 @@ class Dictionary(DataProvider):
         for i in self.fs_model.dat:
             yield i, i, None
 
-    def get_icon(self, path):
-        return QtGui.QIcon()
-
     def init_completer(self, edit_widget):
         "Init QCompleter to work with filesystem"
         completer = QtWidgets.QCompleter(edit_widget)
@@ -45,7 +42,8 @@ class Dictionary(DataProvider):
         return completer
 
 
-class DataModel(QtCore.QStringListModel):
+class DataModel(_DataModel):
+    "Data model for Dictionary provider"
     def __init__(self, data: dict):
         super().__init__()
         self.current_path: "Path|None" = None

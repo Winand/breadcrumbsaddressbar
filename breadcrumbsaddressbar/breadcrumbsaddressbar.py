@@ -13,6 +13,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
 from .backend.filesystem import Filesystem
+from .backend.interface import DataProvider
 from .layouts import LeftHBoxLayout
 from .views import MenuListView
 from .stylesheet import style_root_toolbutton
@@ -40,7 +41,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
 
         layout = QtWidgets.QHBoxLayout(self)
 
-        self.backend = backend or Filesystem()
+        self.backend: DataProvider = backend or Filesystem()
 
         pal = self.palette()
         pal.setColor(QtGui.QPalette.Background,
