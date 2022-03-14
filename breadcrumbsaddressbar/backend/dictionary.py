@@ -14,11 +14,11 @@ class Dictionary(DataProvider):
     def __init__(self, data: dict):
         self.fs_model = DataModel(data)
 
-    def check_path(self, path):
-        parts = str(path).split(os.sep)
+    def check_path(self, path: Path):
+        "Checks that path exists in dictionary"
         d = self.fs_model.dat
         try:
-            for i in parts:
+            for i in path.parts:
                 d = d[i]
         except (KeyError, TypeError):
             raise FileNotFoundError
