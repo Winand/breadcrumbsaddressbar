@@ -8,10 +8,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 
-# Install pip requirements
-COPY requirements.txt .
-RUN python -m pip install -r requirements.txt
-
 ###############################################################################
 # https://doc.qt.io/qt-5/linux-requirements.html
 # export QT_DEBUG_PLUGINS=1
@@ -23,6 +19,12 @@ RUN apt update && apt install -y libxrender1 libxcb-render0 libxcb-render-util0 
 # Additional requirements
 RUN apt install -y libgl1 libxcb-xinerama0 libdbus-1-3
 ###############################################################################
+
+# Install pip requirements
+# https://stackoverflow.com/q/3664478/optional-dependencies-in-a-pip-requirements-file
+COPY requirements.txt requirements-dev.txt ./
+RUN python -m pip install -r requirements.txt
+RUN python -m pip install -r requirements-dev.txt
 
 WORKDIR /app
 COPY . /app
