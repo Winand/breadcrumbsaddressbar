@@ -27,7 +27,7 @@ class DataProvider(abc.ABC):
     Interface class for data providers
     """
     # @override decorator could be implemented: https://stackoverflow.com/q/1167617
-    fs_model: DataModel
+    model: DataModel
 
     @abc.abstractmethod
     def check_path(self, path: Path):

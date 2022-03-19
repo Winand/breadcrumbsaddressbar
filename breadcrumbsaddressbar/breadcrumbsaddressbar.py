@@ -232,7 +232,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         btn.clicked.connect(self.crumb_clicked)
         menu = MenuListView(btn)
         menu.aboutToShow.connect(self.crumb_menu_show)
-        menu.setModel(self.backend.fs_model)
+        menu.setModel(self.backend.model)
         menu.clicked.connect(self.crumb_menuitem_clicked)
         menu.activated.connect(self.crumb_menuitem_clicked)
         menu.aboutToHide.connect(self.mouse_pos_timer.stop)
@@ -260,7 +260,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def crumb_menu_show(self):
         "SLOT: fill subdirectory list on menu open"
         menu = self.sender()
-        self.backend.fs_model.setPathPrefix(str(menu.parent().path) + os.path.sep)
+        self.backend.model.setPathPrefix(str(menu.parent().path) + os.path.sep)
         menu.clear_selection()  # clear currentIndex after applying new model
         self.mouse_pos_timer.start(100)
 

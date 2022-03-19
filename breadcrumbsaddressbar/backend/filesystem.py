@@ -24,7 +24,7 @@ class Filesystem(DataProvider):
         self.file_ico_prov = QtWidgets.QFileIconProvider()
         # Custom icons cause a performance impact https://doc.qt.io/qt-5/qfileiconprovider.html#Option-enum
         # self.file_ico_prov.setOptions(self.file_ico_prov.DontUseCustomDirectoryIcons)
-        self.fs_model = FilenameModel('dirs', icon_provider=self.get_icon)
+        self.model = FilenameModel('dirs', icon_provider=self.get_icon)
         self.os_type = platform.system()
 
     def check_path(self, path: Path):
@@ -95,13 +95,13 @@ class Filesystem(DataProvider):
         "Init QCompleter to work with filesystem"
         completer = QtWidgets.QCompleter(edit_widget)
         completer.setCaseSensitivity(Qt.CaseInsensitive)
-        completer.setModel(self.fs_model)
+        completer.setModel(self.model)
         # Optimize performance https://stackoverflow.com/a/33454284/1119602
         popup = completer.popup()
         popup.setUniformItemSizes(True)
         popup.setLayoutMode(QtWidgets.QListView.Batched)
         edit_widget.setCompleter(completer)
-        edit_widget.textEdited.connect(self.fs_model.setPathPrefix)
+        edit_widget.textEdited.connect(self.model.setPathPrefix)
         return completer
 
     @if_platform('Windows')

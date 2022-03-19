@@ -12,11 +12,11 @@ class Dictionary(DataProvider):
     Dictionary data provider
     """
     def __init__(self, data: dict):
-        self.fs_model = DataModel(data)
+        self.model = DataModel(data)
 
     def check_path(self, path: Path):
         "Checks that path exists in dictionary"
-        d = self.fs_model.dat
+        d = self.model.dat
         try:
             for i in path.parts:
                 d = d[i]
@@ -25,20 +25,21 @@ class Dictionary(DataProvider):
         return path
 
     def get_devices(self):
-        for i in self.fs_model.dat:
+        "Top-level items in dictionary"
+        for i in self.model.dat:
             yield i, i, None
 
     def init_completer(self, edit_widget):
         "Init QCompleter to work with filesystem"
         completer = QtWidgets.QCompleter(edit_widget)
         completer.setCaseSensitivity(Qt.CaseInsensitive)
-        completer.setModel(self.fs_model)
+        completer.setModel(self.model)
         # Optimize performance https://stackoverflow.com/a/33454284/1119602
         popup = completer.popup()
         popup.setUniformItemSizes(True)
         popup.setLayoutMode(QtWidgets.QListView.Batched)
         edit_widget.setCompleter(completer)
-        edit_widget.textEdited.connect(self.fs_model.setPathPrefix)
+        edit_widget.textEdited.connect(self.model.setPathPrefix)
         return completer
 
 
