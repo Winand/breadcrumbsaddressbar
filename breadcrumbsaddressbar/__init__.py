@@ -1,1 +1,1 @@
-from .breadcrumbsaddressbar import *
+from breadcrumbsaddressbar.breadcrumbsaddressbar import *

@@ -6,12 +6,12 @@ from typing import Union as U, Final
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
-from .interface import DataProvider
-from .models import FilenameModel
-from ..platform.common import if_platform
+from breadcrumbsaddressbar.backend.interface import DataProvider
+from breadcrumbsaddressbar.backend.models import FilenameModel
+from breadcrumbsaddressbar.platform.common import if_platform
 
 if platform.system() == "Windows":
-    from ..platform.windows import get_path_label, read_link
+    from breadcrumbsaddressbar.platform.windows import get_path_label, read_link
 
 TRANSP_ICON_SIZE: Final = 40, 40  # px, size of generated semi-transparent icons
 

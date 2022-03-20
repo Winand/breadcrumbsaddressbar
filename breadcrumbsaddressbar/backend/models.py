@@ -4,7 +4,7 @@ from pathlib import Path
 from qtpy import QtCore, QtWidgets
 from qtpy.QtCore import Qt
 
-from .interface import DataModel
+from breadcrumbsaddressbar.backend.interface import DataModel
 
 
 class FilenameModel(DataModel):

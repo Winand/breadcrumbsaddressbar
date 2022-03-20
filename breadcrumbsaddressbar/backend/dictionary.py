@@ -1,10 +1,11 @@
 import os
 from pathlib import Path
 
+from breadcrumbsaddressbar.backend.interface import DataModel as _DataModel
+from breadcrumbsaddressbar.backend.interface import DataProvider
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
-from .interface import DataModel as _DataModel, DataProvider
 
 
 class Dictionary(DataProvider):

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 
-from .dictionary import Dictionary
+from breadcrumbsaddressbar.backend.dictionary import Dictionary
 
 
 class YamlDict(Dictionary):

@@ -12,11 +12,11 @@ from typing import Union
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
-from .backend.filesystem import Filesystem
-from .backend.interface import DataProvider
-from .layouts import LeftHBoxLayout
-from .views import MenuListView
-from .stylesheet import style_root_toolbutton
+from breadcrumbsaddressbar.backend.filesystem import Filesystem
+from breadcrumbsaddressbar.backend.interface import DataProvider
+from breadcrumbsaddressbar.layouts import LeftHBoxLayout
+from breadcrumbsaddressbar.stylesheet import style_root_toolbutton
+from breadcrumbsaddressbar.views import MenuListView
 
 TRANSP_ICON_SIZE = 40, 40  # px, size of generated semi-transparent icons
 cwd_path = Path()  # working dir (.) https://stackoverflow.com/q/51330297
