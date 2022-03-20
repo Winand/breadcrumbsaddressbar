@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union as U, Final
 
 from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtCore import Qt
+Qt = QtCore.Qt
 
 from breadcrumbsaddressbar.backend.interface import DataProvider
 from breadcrumbsaddressbar.backend.models import FilenameModel

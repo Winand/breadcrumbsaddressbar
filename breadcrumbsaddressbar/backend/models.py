@@ -2,7 +2,7 @@ import os.path
 from pathlib import Path
 
 from qtpy import QtCore, QtWidgets
-from qtpy.QtCore import Qt
+Qt = QtCore.Qt
 
 from breadcrumbsaddressbar.backend.interface import DataModel
 

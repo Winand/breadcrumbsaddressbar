@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Union
 
 from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtCore import Qt
+Qt = QtCore.Qt
 
 from breadcrumbsaddressbar.backend.filesystem import Filesystem
 from breadcrumbsaddressbar.backend.interface import DataProvider
