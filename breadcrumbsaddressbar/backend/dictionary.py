@@ -54,9 +54,20 @@ class DataModel(_DataModel):
     def __init__(self, data: "dict[str, dict|str|None]"):
         super().__init__()
         self.current_path: "Path|None" = None
-        self.dat = data
+        self.dat = self._stringify_keys(data)  # copies nested dicts
         self.def_icon = (self.dat.get(self.META) or {}).get("icon", self.def_icon)
 
+    def _stringify_keys(self, data: "dict[str, dict|str|None]"):
+        "Stringify keys of dictionary"
+        # see also https://stackoverflow.com/questions/62198378/numeric-keys-in-yaml-files
+        # https://stackoverflow.com/questions/47568356/python-convert-all-keys-to-strings
+        new_d = {}
+        for i in data:
+            data_i = data[i]
+            new_d[str(i)] = self._stringify_keys(data_i) \
+                            if isinstance(data_i, dict) \
+                            else data_i
+        return new_d
     def data(self, index, role):
         "Get names/icons of files"
         default = super().data(index, role)
