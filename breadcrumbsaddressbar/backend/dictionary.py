@@ -28,7 +28,8 @@ class Dictionary(DataProvider):
     def get_devices(self):
         "Top-level items in dictionary"
         for i in self.model.dat:
-            yield i, i, None
+            if i != self.model.META:
+                yield i, i, None
 
     def init_completer(self, edit_widget):
         "Init QCompleter to work with filesystem"
@@ -46,17 +47,39 @@ class Dictionary(DataProvider):
 
 class DataModel(_DataModel):
     "Data model for Dictionary provider"
-    def __init__(self, data: dict):
+    META = "/metadata"
+    def_icon = "DirIcon"  # if default icon is not specified in data
+    icon_cache = {}
+
+    def __init__(self, data: "dict[str, dict|str|None]"):
         super().__init__()
         self.current_path: "Path|None" = None
         self.dat = data
+        self.def_icon = (self.dat.get(self.META) or {}).get("icon", self.def_icon)
 
     def data(self, index, role):
         "Get names/icons of files"
         default = super().data(index, role)
+        if role == Qt.DecorationRole:
+            return self.get_icon(
+                super().data(index, Qt.DisplayRole)
+            )
         if role == Qt.DisplayRole:
             return Path(default).name
         return default
+
+    def get_icon(self, path: Path):
+        "Returns folder icon"
+        icon_id = self.def_icon
+        node = self._traverse(Path(path))
+        if node:
+            node = node.get(self.META)
+            if node:
+                icon_id = node.get("icon", icon_id)
+        if icon_id not in self.icon_cache:
+            self.icon_cache[icon_id] = QtWidgets.QApplication.instance().style() \
+                .standardIcon(getattr(QtWidgets.QStyle, "SP_" + icon_id))
+        return self.icon_cache[icon_id]
 
     def setPathPrefix(self, prefix: str):
         path = Path(prefix)
@@ -67,5 +90,6 @@ class DataModel(_DataModel):
         d: dict = self.dat
         for i in path.parts:
             d = d[str(i)]
-        self.setStringList((str(path / k) for k in (d.keys() if d else ())))
+        # DataModel is a QStringListModel
+        self.setStringList((str(path / k) for k in (d.keys() if d else ()) if k != self.META))
         self.current_path = path
