@@ -17,12 +17,7 @@ class Dictionary(DataProvider):
 
     def check_path(self, path: Path):
         "Checks that path exists in dictionary"
-        d = self.model.dat
-        try:
-            for i in path.parts:
-                d = d[i]
-        except (KeyError, TypeError):
-            raise FileNotFoundError
+        self.model._traverse(path)
         return path
 
     def get_devices(self):
@@ -113,9 +108,17 @@ class DataModel(_DataModel):
             path = path.parent
         if path == self.current_path:
             return  # already listed
-        d: dict = self.dat
-        for i in path.parts:
-            d = d[str(i)]
+        d = self._traverse(path)
         # DataModel is a QStringListModel
         self.setStringList((str(path / k) for k in (d.keys() if d else ()) if k != self.META))
         self.current_path = path
+
+    def _traverse(self, path: Path) -> "dict[str, dict]|None":
+        "Traverse dictionary and return child items of path"
+        dic = self.dat
+        try:
+            for i in path.parts:
+                dic = dic[i]  # type: ignore
+        except (KeyError, TypeError):
+            raise FileNotFoundError
+        return dic
