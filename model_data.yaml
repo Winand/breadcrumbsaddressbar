@@ -2,8 +2,14 @@ hello:
   a:
     sub-a:
       1 one:
-      2 two:
+      2 two: icon=ArrowForward
       3 three:
+        /metadata: icon=ArrowBack
+        31:
+        32:
   b:
 there:
   nothing.txt:
+    /metadata:
+      icon: FileIcon
+/metadata: icon=ArrowUp

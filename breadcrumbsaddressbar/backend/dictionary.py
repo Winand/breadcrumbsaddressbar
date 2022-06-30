@@ -1,9 +1,51 @@
+"""
+Dictionary data provider uses dict as source of data.
+
+Keys are names of nodes, values are children of nodes. All keys are converted to
+strings on load. Each node may include special metadata child in one of the following forms:
+* Full - "/metadata" key with a dict of values:
+    "nodename": {
+        "/metadata": {
+            "icon": "DirIcon",  # default icon for all items
+        }, ...
+    }
+* Short - "/metadata" key with a string of comma-separated key=value pairs:
+    "nodename": {
+        "/metadata": "icon=FileIcon", ...
+    }
+* Compact - string of comma-separated key=value pairs. This form can be used
+  if there're no other children in the node:
+    "nodename": "icon=FileIcon"
+
+Metadata on the root level is applied to all nodes.
+Supported metadata:
+* "icon": node icon which is a name of Qt StandardIcon without SP_ prefix.
+          If not specified, DirIcon is used (default)
+
+Example:
+{
+    "root1": {
+        "dir1": "icon=FileIcon",
+        "dir2": None,
+    },
+    "root2": {
+        "dir1": None,
+        "dir2": {
+            "/metadata": "icon=FileIcon",
+        },
+    },
+    "/metadata": {
+        "icon": "DirIcon",  # default icon for all items
+    }
+}
+"""
+
 import os
 from pathlib import Path
 
 from breadcrumbsaddressbar.backend.interface import DataModel as _DataModel
 from breadcrumbsaddressbar.backend.interface import DataProvider
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtWidgets
 Qt = QtCore.Qt
 
 cwd_path = Path()  # working dir (.) https://stackoverflow.com/q/51330297
