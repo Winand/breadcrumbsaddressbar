@@ -10,9 +10,9 @@ class YamlDict(Dictionary):
     """
         Subclass of Dictionary that reads a yaml file or string.
     """
-    def __init__(self, yaml_src: "Path|TextIOBase|str"):
+    def __init__(self, yaml_src: "Path|TextIOBase|str", encoding='utf-8'):
         if isinstance(yaml_src, Path):
-            with open(yaml_src, "r") as f:
+            with open(yaml_src, "r", encoding=encoding) as f:
                 data = yaml.safe_load(f)
         elif isinstance(yaml_src, (TextIOBase, str)):
             data = yaml.safe_load(yaml_src)
