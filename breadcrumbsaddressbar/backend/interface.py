@@ -21,6 +21,10 @@ class DataModel(QtCore.QStringListModel, metaclass=QABCMeta):
         "Prefix sets path level to be used in data model"
         raise NotImplementedError
 
+    def get_icon(self, path: Path):
+        "Returns icon for passed path - default is empty icon"
+        return QtGui.QIcon()
+
 
 class DataProvider(abc.ABC):
     """
@@ -41,8 +45,8 @@ class DataProvider(abc.ABC):
         raise NotImplementedError
 
     def get_icon(self, path: Path):
-        "Returns icon for passed path - default is empty icon"
-        return QtGui.QIcon()
+        "Returns icon for passed path - default is an icon from model"
+        return self.model.get_icon(path)
 
     def get_places(self):
         "Returns list of places like Home, Destop, etc"
