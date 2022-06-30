@@ -6,6 +6,7 @@ from breadcrumbsaddressbar.backend.interface import DataProvider
 from qtpy import QtCore, QtGui, QtWidgets
 Qt = QtCore.Qt
 
+cwd_path = Path()  # working dir (.) https://stackoverflow.com/q/51330297
 
 
 class Dictionary(DataProvider):
@@ -17,6 +18,8 @@ class Dictionary(DataProvider):
 
     def check_path(self, path: Path):
         "Checks that path exists in dictionary"
+        if path == cwd_path:  # return first element of dict for cwd path
+            return Path(next(iter(self.model.dat)))
         self.model._traverse(path)
         return path
 
