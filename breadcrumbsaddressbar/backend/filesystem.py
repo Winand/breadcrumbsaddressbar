@@ -24,7 +24,7 @@ class Filesystem(DataProvider):
         self.file_ico_prov = QtWidgets.QFileIconProvider()
         # Custom icons cause a performance impact https://doc.qt.io/qt-5/qfileiconprovider.html#Option-enum
         # self.file_ico_prov.setOptions(self.file_ico_prov.DontUseCustomDirectoryIcons)
-        self.model = FilenameModel('dirs', icon_provider=self.get_icon)
+        self.model: FilenameModel = FilenameModel('dirs', icon_provider=self.get_icon)
         self.os_type = platform.system()
 
     def check_path(self, path: Path):
