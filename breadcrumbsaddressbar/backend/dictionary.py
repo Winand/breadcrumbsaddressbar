@@ -55,6 +55,7 @@ class DataModel(_DataModel):
         super().__init__()
         self.current_path: "Path|None" = None
         self.dat = self._stringify_keys(data)  # copies nested dicts
+        self._expand_metadata(self.dat)
         self.def_icon = (self.dat.get(self.META) or {}).get("icon", self.def_icon)
 
     def _stringify_keys(self, data: "dict[str, dict|str|None]"):
@@ -68,6 +69,20 @@ class DataModel(_DataModel):
                             if isinstance(data_i, dict) \
                             else data_i
         return new_d
+
+    def _expand_metadata(self, data: "dict[str, dict|str|None]"):
+        "Expand string metadata to dict"
+        for i in data:
+            data_i = data[i]
+            if isinstance(data_i, str):
+                tmp_d = {}
+                for kv in data_i.split(","):
+                    k, v = kv.split("=")
+                    tmp_d[k] = v
+                data[i] = tmp_d if i == self.META else {self.META: tmp_d}
+            elif i != self.META and isinstance(data_i, dict):
+                self._expand_metadata(data_i)
+
     def data(self, index, role):
         "Get names/icons of files"
         default = super().data(index, role)
