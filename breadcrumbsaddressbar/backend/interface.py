@@ -4,6 +4,7 @@ Abstract superclass for all data providers
 
 import abc
 from pathlib import Path
+from typing import Iterable  # https://docs.python.org/3.6/library/typing.html#typing.Generator
 from qtpy import QtGui, QtCore
 from qtpy.QtWidgets import QWidget, QCompleter
 
@@ -48,7 +49,7 @@ class DataProvider(abc.ABC):
         "Returns icon for passed path - default is an icon from model"
         return self.model.get_icon(path)
 
-    def get_places(self):
+    def get_places(self) -> Iterable[tuple[str, str]]:
         "Returns list of places like Home, Destop, etc"
         raise NotImplementedError
 

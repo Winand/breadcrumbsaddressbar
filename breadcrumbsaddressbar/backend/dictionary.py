@@ -72,6 +72,11 @@ class Dictionary(DataProvider):
             if i != self.model.META:
                 yield i, i, None
 
+    def get_places(self):
+        "Shortcuts for common places"
+        for name, path in self.model.metadata.get("places", {}).items():
+            yield name, path
+
     def init_completer(self, edit_widget):
         "Init QCompleter to work with filesystem"
         completer = QtWidgets.QCompleter(edit_widget)
