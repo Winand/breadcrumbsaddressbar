@@ -96,7 +96,7 @@ class DataModel(_DataModel):
         self.current_path: "Path|None" = None
         self.dat = self._stringify_keys(data)  # copies nested dicts
         self._expand_metadata(self.dat)
-        self.def_icon = (self.dat.get(self.META) or {}).get("icon", self.def_icon)
+        self.def_icon = self.metadata.get("icon", self.def_icon)
 
     def _stringify_keys(self, data: "dict[str, dict|str|None]"):
         "Stringify keys of dictionary"
@@ -167,3 +167,8 @@ class DataModel(_DataModel):
         except (KeyError, TypeError):
             raise FileNotFoundError
         return dic
+
+    @property
+    def metadata(self) -> dict:
+        "Returns model's metadata as dict if any"
+        return self.dat.get(self.META) or {}
