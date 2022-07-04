@@ -45,7 +45,7 @@ from pathlib import Path
 
 from breadcrumbsaddressbar.backend.interface import DataModel as _DataModel
 from breadcrumbsaddressbar.backend.interface import DataProvider
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets, QtGui
 Qt = QtCore.Qt
 
 cwd_path = Path()  # working dir (.) https://stackoverflow.com/q/51330297
@@ -88,7 +88,7 @@ class Dictionary(DataProvider):
 class DataModel(_DataModel):
     "Data model for Dictionary provider"
     META = "/metadata"
-    def_icon = "DirIcon"  # if default icon is not specified in data
+    def_icon = "SP_FileIcon"  # if default icon is not specified in data
     icon_cache = {}
 
     def __init__(self, data: "dict[str, dict|str|None]"):
@@ -143,8 +143,11 @@ class DataModel(_DataModel):
             if node:
                 icon_id = node.get("icon", icon_id)
         if icon_id not in self.icon_cache:
-            self.icon_cache[icon_id] = QtWidgets.QApplication.instance().style() \
-                .standardIcon(getattr(QtWidgets.QStyle, "SP_" + icon_id))
+            if icon_id.startswith("SP_"):
+                self.icon_cache[icon_id] = QtWidgets.QApplication.instance().style() \
+                    .standardIcon(getattr(QtWidgets.QStyle, icon_id))
+            else:
+                self.icon_cache[icon_id] = QtGui.QIcon(icon_id)
         return self.icon_cache[icon_id]
 
     def setPathPrefix(self, prefix: str):
