@@ -49,6 +49,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 Qt = QtCore.Qt
 
 cwd_path = Path()  # working dir (.) https://stackoverflow.com/q/51330297
+SEPARATORS = "/", "\\"
 
 
 class Dictionary(DataProvider):
@@ -98,16 +99,26 @@ class DataModel(_DataModel):
         self._expand_metadata(self.dat)
         self.def_icon = self.metadata.get("icon", self.def_icon)
 
-    def _stringify_keys(self, data: "dict[str, dict|str|None]"):
-        "Stringify keys of dictionary"
+    def _stringify_keys(self, data: "dict[str, dict|str|None]", cur_path="", is_meta=False):
+        """
+        Stringify keys of dictionary.
+        Also it normalizes root level key to platform-specific separator.
+        """
         # see also https://stackoverflow.com/questions/62198378/numeric-keys-in-yaml-files
         # https://stackoverflow.com/questions/47568356/python-convert-all-keys-to-strings
         new_d = {}
         for i in data:
             data_i = data[i]
-            new_d[str(i)] = self._stringify_keys(data_i) \
-                            if isinstance(data_i, dict) \
-                            else data_i
+            i = str(i)
+            if i in SEPARATORS:
+                if cur_path and not is_meta:
+                    raise ValueError(f"Root directory is allowed on root level only. Path is '{cur_path}'")
+                i = os.path.sep  # platform-specific separator
+            if isinstance(data_i, dict):
+                new_d[i] = self._stringify_keys(data_i, os.path.join(cur_path, i),
+                                                is_meta or i == self.META)
+            else:
+                new_d[i] = data_i
         return new_d
 
     def _expand_metadata(self, data: "dict[str, dict|str|None]"):
