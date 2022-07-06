@@ -17,10 +17,13 @@ strings on load. Each node may include special metadata child in one of the foll
   if there're no other children in the node:
     "nodename": "icon=FileIcon"
 
-Metadata on the root level is applied to all nodes.
-Supported metadata:
-* "icon": node icon which is a name of Qt StandardIcon without SP_ prefix.
-          If not specified, DirIcon is used (default)
+Metadata (on the root level it is applied to all nodes in the tree):
+* "icon": node icon path which is passed to QIcon constructor or a name of
+          Qt's StandardPixmap. By default SP_FileIcon is used
+Metadata supported on the root level only:
+* "places": dict in the form of {(name): (path), ...} for shortcuts to common places
+* "devices": this field is like "places" but for devices. By default root nodes
+             are considered as devices.
 
 Example:
 {
