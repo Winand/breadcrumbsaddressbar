@@ -42,6 +42,7 @@ Example:
 
 import os
 from pathlib import Path
+from typing import Optional
 
 from breadcrumbsaddressbar.backend.interface import DataModel as _DataModel
 from breadcrumbsaddressbar.backend.interface import DataProvider
@@ -57,7 +58,7 @@ class Dictionary(DataProvider):
     Dictionary data provider
     """
     def __init__(self, data: dict):
-        self.model = DataModel(data)
+        self.model: DataModel = DataModel(data)
 
     def check_path(self, path: Path):
         "Checks that path exists in dictionary"
@@ -68,9 +69,14 @@ class Dictionary(DataProvider):
 
     def get_devices(self):
         "Top-level items in dictionary"
-        for i in self.model.dat:
-            if i != self.model.META:
-                yield i, i, None
+        dev: Optional[dict] = self.model.metadata.get("devices")
+        if dev is not None:
+            for label, path in dev.items():
+                yield label, path, self.get_icon(path)
+        else:  # return top-level items by default
+            for i in self.model.dat:
+                if i != self.model.META:
+                    yield i, i, self.get_icon(i)
 
     def get_places(self):
         "Shortcuts for common places"
