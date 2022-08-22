@@ -271,7 +271,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         Can be used as a SLOT: `sender().path` is used if `path` is `None`)
         """
         self._cancel_edit()  # exit edit mode
-        path = Path(path or self.sender().path)
+        path = Path(os.path.normpath(path or self.sender().path))
         try:
             path = self.backend.check_path(path)
         except PermissionError:

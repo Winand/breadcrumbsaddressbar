@@ -188,13 +188,18 @@ class DataModel(_DataModel):
 
     def _traverse(self, path: Path) -> "dict[str, dict]|None":
         "Traverse dictionary and return child items of path"
-        dic = self.dat
+        dic = [self.dat]
         try:
             for i in path.parts:
-                dic = dic[i]  # type: ignore
-        except (KeyError, TypeError):
-            raise FileNotFoundError
-        return dic
+                if i == "..":
+                    dic.pop()
+                else:
+                    dic.append(dic[-1][i])  # type: ignore
+            dic.pop(0)  # first level items are not considered to be related
+                        # so don't return them as a list
+            return dic[-1]
+        except (KeyError, TypeError, IndexError):
+            raise FileNotFoundError(f"Path '{path}' not found")
 
     @property
     def metadata(self) -> dict:

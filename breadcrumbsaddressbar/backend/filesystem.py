@@ -59,7 +59,7 @@ class Filesystem(DataProvider):
 
     def get_icon(self, path: U[str, Path]):
         "Path -> QIcon"
-        fileinfo = QtCore.QFileInfo(str(path))
+        fileinfo = QtCore.QFileInfo(os.path.normpath(path))
         dat = self.file_ico_prov.icon(fileinfo)
         if fileinfo.isHidden():
             pmap = QtGui.QPixmap(*TRANSP_ICON_SIZE)
