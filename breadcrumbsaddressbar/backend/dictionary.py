@@ -181,7 +181,10 @@ class DataModel(_DataModel):
             path = path.parent
         if path == self.current_path:
             return  # already listed
-        d = self._traverse(path)
+        try:
+            d = self._traverse(path)
+        except FileNotFoundError:
+            return
         # DataModel is a QStringListModel
         self.setStringList((str(path / k) for k in (d.keys() if d else ()) if k != self.META))
         self.current_path = path
