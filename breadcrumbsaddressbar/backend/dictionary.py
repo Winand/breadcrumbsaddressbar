@@ -28,17 +28,17 @@ Metadata supported on the root level only:
 Example:
 {
     "root1": {
-        "dir1": "icon=FileIcon",
+        "dir1": "icon=SP_FileIcon",
         "dir2": None,
     },
     "root2": {
         "dir1": None,
         "dir2": {
-            "/metadata": "icon=FileIcon",
+            "/metadata": "icon=SP_FileIcon",
         },
     },
     "/metadata": {
-        "icon": "DirIcon",  # default icon for all items
+        "icon": "SP_DirIcon",  # default icon for all items
     }
 }
 """
@@ -87,7 +87,7 @@ class Dictionary(DataProvider):
             yield name, path
 
     def init_completer(self, edit_widget):
-        "Init QCompleter to work with filesystem"
+        "Init QCompleter to work with the data model"
         completer = QtWidgets.QCompleter(edit_widget)
         completer.setCaseSensitivity(Qt.CaseInsensitive)
         completer.setModel(self.model)
