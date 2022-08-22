@@ -1,15 +1,28 @@
+/:
+  /metadata: icon=SP_ComputerIcon
+  sub-root:
+  sub-root2:
 hello:
   a:
     sub-a:
       1 one:
-      2 two: icon=ArrowForward
+      2 two: icon=SP_ArrowForward
       3 three:
-        /metadata: icon=ArrowBack
+        /metadata: icon=SP_ArrowBack
         31:
         32:
   b:
 there:
+  /metadata: icon=iconfinder_icon-ios7-arrow-left_211689.png
   nothing.txt:
     /metadata:
-      icon: FileIcon
-/metadata: icon=ArrowUp
+      icon: SP_FileIcon
+/metadata:
+  # icon: SP_DirIcon
+  places:
+    nothing.txt: there/nothing.txt
+    1 one: hello/a/sub-a/1 one
+    sub-root2: /sub-root2
+  devices:
+    /: /
+    Hace años тому назад: there
