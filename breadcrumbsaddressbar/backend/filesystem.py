@@ -32,7 +32,13 @@ class Filesystem(DataProvider):
         Returns resolved path or raises FileNotFoundError if path is not valid
         """
         # C: -> C:\, folder\..\folder -> folder
-        path = path.resolve()  # may raise PermissionError
+        try:
+            path = path.resolve()  # may raise PermissionError
+        except OSError as e:
+            # The filename, directory name, or volume label syntax is incorrect
+            # https://stackoverflow.com/questions/71088840/bug-in-pathlib-resolve-on-windows
+            if e.errno == 123:
+                pass  # FIXME:
         if not path.exists():
             raise FileNotFoundError
         return path
