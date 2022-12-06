@@ -3,11 +3,9 @@ from ctypes import POINTER, Structure, byref
 from ctypes.wintypes import BYTE, DWORD, MSG, USHORT, WORD
 from pathlib import Path
 
-import pythoncom
-from win32comext.shell import shell  # https://github.com/microsoft/pylance-release/issues/1268#issuecomment-845278198
+from breadcrumbsaddressbar.platform.windows_com import IShellLink, ITEMIDLIST
 
 shell32 = ctypes.windll.shell32
-ole32 = ctypes.windll.ole32
 
 
 WM_DEVICECHANGE = 0x219  # Notifies an application of a change to the hardware configuration of a device or the computer.
@@ -51,14 +49,6 @@ def event_device_connection(message) -> tuple:
         return letters, message.wParam == DBT_DEVICEARRIVAL
 
 
-class SHITEMID(Structure):
-    _fields_ = [
-        ("cb", USHORT),
-        ("abID", BYTE * 1),
-    ]
-class ITEMIDLIST(Structure):
-    _fields_ = [
-        ("mkid", SHITEMID)]
 # SIGDN enum https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/ne-shobjidl_core-sigdn
 NORMALDISPLAY = 0x00000000  # Samsung Evo 850 (C:)
 PARENTRELATIVEPARSING = 0x80018001  # C:
@@ -97,14 +87,13 @@ def read_link(filename: Path, filesystem_only: bool=True):
     Faster than CreateShortCut (WScript.Shell) https://stackoverflow.com/a/571573
     Also faster than QFileInfo(link).symLinkTarget()
     """
-    link = pythoncom.CoCreateInstance(
-        shell.CLSID_ShellLink, None, pythoncom.CLSCTX_INPROC_SERVER,
-        shell.IID_IShellLink
-    )
-    link.QueryInterface(pythoncom.IID_IPersistFile).Load(str(filename))
-    # GetPath returns the name and a WIN32_FIND_DATA structure
-    name, _ = link.GetPath(shell.SLGP_UNCPRIORITY)
+    link = IShellLink()
+    name = link.get_path(str(filename))
     if not name and not filesystem_only:
         # https://stackoverflow.com/a/46196480
-        name = shell.SHGetNameFromIDList(link.GetIDList(), DESKTOPABSOLUTEPARSING)
+        name_ = ctypes.c_wchar_p()
+        if not shell32.SHGetNameFromIDList(
+            link.get_id_list(), DESKTOPABSOLUTEPARSING, byref(name_)
+        ):
+            name = name_.value
     return name
