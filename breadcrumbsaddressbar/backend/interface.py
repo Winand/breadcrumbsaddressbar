@@ -49,7 +49,7 @@ class DataProvider(abc.ABC):
         "Returns icon for passed path - default is an icon from model"
         return self.model.get_icon(path)
 
-    def get_places(self) -> Iterable[tuple[str, str]]:
+    def get_places(self) -> Iterable["tuple[str, str]"]:
         "Returns list of places like Home, Destop, etc"
         raise NotImplementedError
 

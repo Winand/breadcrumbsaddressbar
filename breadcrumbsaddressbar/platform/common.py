@@ -19,7 +19,7 @@ class _Not_Implemented:
         )
 
 
-def if_platform(*plat: U[str, list[str], tuple[str]]):
+def if_platform(*plat: U[str, "list[str]", "tuple[str]"]):
     frame = sys._getframe().f_back
     def _ifdef(func=None):
         nonlocal plat
