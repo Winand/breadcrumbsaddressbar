@@ -1,3 +1,41 @@
+"""
+Module provides functionality for instantiating and accessing Windows COM objects
+through interfaces.
+
+A COM interface is described using class with methods. All COM interfaces are
+inherited from IUnknown interface.
+An interface has @interface decorator and each COM method declaration has
+@method(index=...) decorator where `index` is an index of that method in COM interface.
+E.g. IUnknown::QueryInterface has index 0, AddRef - index 1, Release - index 2.
+
+@method saves index and arguments in a __com_func__ variable of a method. Then
+@interface collects all methods containing that variable into __func_table__ dict
+of a class. At runtime IUnknown.__init__ creates an instance of a object
+(if object pointer is not passed in arguments) and replaces all declarations
+with generated methods which call methods of that object. So if __init__ is
+overriden then super().__init__ should be called.
+
+Example of a COM method declaration:
+@interface
+class IExample(IUnknown)
+    @method(index=5)
+    def Load(self, pszFileName: DT.LPCOLESTR, dwMode: DT.DWORD):
+        ...
+Argument type hint may be a Union. Only the first type is used for COM method
+initialization. So you can use Union[c_wchar_p, str] to pass string w/o linting error.
+Optionally you may raise NotImplementedError in COM method declaration so you never call
+those stub methods in runtime accidentally, e.g. in case of not initializing a method
+(missing @method decorator, IUnknown.__init__ not called etc.).
+
+Alternatively COM methods can be described in __methods__ dict of a class:
+    __methods__ = {
+        "Method1": {'index': 1, 'args': {"hwnd": DT.HWND}},
+        "Method2": {'index': 5, 'args': (HWND, INT)},
+        "Method3": {'index': 6},
+    }
+But this is not recommended because those methods are not recognized by linter.
+"""
+
 import logging
 from ctypes import (HRESULT, POINTER, WINFUNCTYPE, Structure, byref, c_short,
                     c_ubyte, c_uint, c_void_p, c_wchar_p, cast,
@@ -63,15 +101,61 @@ class ITEMIDLIST(Structure):
         ("mkid", SHITEMID)]
 ###############################################################################
 
-def gen_method(ptr, method_index, *arg_types):
-    # https://stackoverflow.com/a/49053176
-    # https://stackoverflow.com/a/12638860
-    vtable = cast(ptr, POINTER(c_void_p))
-    wk = c_void_p(vtable[0])
-    function = cast(wk, POINTER(c_void_p))
-    WFC = WINFUNCTYPE(HRESULT, c_void_p, *arg_types)
-    METH = WFC(function[method_index])
-    return lambda *args: METH(ptr, *args)
+def interface(cls):
+    # if "clsid" not in cls.__dict__ or "iid" not in cls.__dict__:
+    #     raise ValueError(f"{cls.__name__}: clsid / iid class variables not found")
+    if len(cls.__bases__) != 1:
+        # https://stackoverflow.com/questions/70222391/com-multiple-interface-inheritance
+        raise TypeError('Multiple inheritance is not supported')
+    # if cls.__bases__[0] is object:
+    #     if cls.__name__ != 'IUnknown':
+    #         logging.warning(f"COM interfaces should be derived from IUnknown, not {cls.__name__}")
+    __func_table__ = getattr(cls.__bases__[0], '__func_table__', {}).copy()
+    for member_name, member in cls.__dict__.items():
+        if not isinstance(member, FunctionType):
+            continue
+        __com_func__ = getattr(member, '__com_func__', None)
+        if not __com_func__:
+            continue
+        __func_table__[member_name] = __com_func__
+    __methods__ = cls.__dict__.get('__methods__')
+    if isinstance(__methods__, dict):
+        # Collect COM methods from __methods__ dict:
+        # __methods__ = {
+        #     "Method1": {'index': 1, 'args': {"hwnd": DT.HWND}},
+        #     "Method2": {'index': 5, 'args': (HWND, INT)},
+        #     "Method3": {'index': 6},
+        # }
+        for member_name, info in __methods__.items():
+            if member_name in __func_table__:
+                logging.warning("Overriding existing method %s.%s", cls.__name__, member_name)
+            args = info.get('args', ())
+            if isinstance(args, dict):
+                args = tuple(args.values())
+            __func_table__[member_name] = {
+                'index': info['index'],
+                'args': WINFUNCTYPE(HRESULT, c_void_p,
+                    *((get_args(i) or [i])[0] for i in args)
+                )
+            }
+    setattr(cls, '__func_table__', __func_table__)
+    return cls
+
+def method(index):
+    # https://stackoverflow.com/a/2367605
+    def func_decorator(func):
+        type_hints = get_type_hints(func)
+        # Type of return value is not used.
+        # Return type is HRESULT https://stackoverflow.com/a/20733034
+        type_hints.pop('return', None)
+        func.__com_func__ = {
+            'index': index,
+            'args': WINFUNCTYPE(HRESULT, c_void_p,
+                *((get_args(i) or [i])[0] for i in type_hints.values())
+            )
+        }
+        return func
+    return func_decorator
 
 def create_instance(clsid, iid):
     ptr = c_void_p()
@@ -88,25 +172,40 @@ class DT:
     INT = U[INT, int]
     REFIID = U[POINTER(Guid), CArgObject]
     void_pp = U[POINTER(c_void_p), CArgObject]
-    LPCOLESTR = c_wchar_p  # https://stackoverflow.com/a/1607840
+    LPCOLESTR = U[c_wchar_p, str]  # https://stackoverflow.com/a/1607840
     WIN32_FIND_DATA_p = U[POINTER(WIN32_FIND_DATA), CArgObject]
     PIDLIST_ABSOLUTE = POINTER(POINTER(ITEMIDLIST))  # https://microsoft.public.win32.programmer.ui.narkive.com/p5Xl5twk/where-is-pidlist-absolute-defined
 
 
+@interface
 class IUnknown:
     """
-    IUnknown https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.14393.0/um/Unknwn.h#L108
+    The IUnknown interface enables clients to retrieve pointers to other interfaces
+    on a given object through the QueryInterface method, and to manage the existence
+    of the object through the AddRef and Release methods. All other COM interfaces are
+    inherited, directly or indirectly, from IUnknown.
+
+    IUnknown https://learn.microsoft.com/en-us/windows/win32/api/unknwn/nn-unknwn-iunknown
+    IUnknown (DCOM) https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dcom/2b4db106-fb79-4a67-b45f-63654f19c54c
+    IUnknown (source) https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.14393.0/um/Unknwn.h#L108
     """
-    clsid, iid = None, None
-    _methods_ = {}
+    clsid, iid, __func_table__ = None, "{00000000-0000-0000-C000-000000000046}", {}
     T = TypeVar('T', bound="IUnknown")
 
     def __init__(self, ptr: Optional[c_void_p]=None):
         "Creates an instance and generates methods"
         self.ptr = ptr or create_instance(self.clsid, self.iid)
-        self.__generate_methods_from_class(IUnknown)
-        self.__generate_methods_from_class(self.__class__)
-        self.__generate_methods_from_dict(self._methods_)
+        # Access COM methods from Python https://stackoverflow.com/a/49053176
+        # ctypes + COM access https://stackoverflow.com/a/12638860
+        vtable = cast(self.ptr, POINTER(c_void_p))
+        wk = c_void_p(vtable[0])
+        functions = cast(wk, POINTER(c_void_p))  # method list
+        for func_name, __com_opts__ in self.__func_table__.items():
+            # Variable in a loop https://www.coursera.org/learn/golang-webservices-1/discussions/threads/0i1G0HswEemBSQpvxxG8fA/replies/m_pdt1kPQqS6XbdZD6Kkiw
+            win_func = __com_opts__['args'](functions[__com_opts__['index']])
+            setattr(self, func_name,
+                lambda *args, f=win_func: f(self.ptr, *args)
+            )
     
     def query_interface(self, IID: type[T]) -> T:
         "Helper method for QueryInterface"
@@ -114,11 +213,20 @@ class IUnknown:
         self.QueryInterface(byref(Guid(IID.iid)), byref(ptr))
         return IID(ptr)
 
-    def QueryInterface(self, riid: DT.REFIID, ppvObject: DT.void_pp):
-        "index: 0"
+    @method(index=0)
+    def QueryInterface(self, riid: DT.REFIID, ppvObject: DT.void_pp) -> HRESULT:
+        "Retrieves pointers to the supported interfaces on an object."
+        raise NotImplementedError
+    
+    @method(index=1)
+    def AddRef(self) -> HRESULT:
+        "Increments the reference count for an interface pointer to a COM object"
+        raise NotImplementedError
 
-    def Release(self):
-        "index: 2"
+    @method(index=2)
+    def Release(self) -> HRESULT:
+        "Decrements the reference count for an interface on a COM object"
+        raise NotImplementedError
 
     def __del__(self):
         if self.ptr:
@@ -127,58 +235,23 @@ class IUnknown:
     def isAccessible(self):
         return bool(self.ptr)
 
-    def __generate_methods_from_dict(self, methods: dict):
-        """
-        Methods are described in a `_methods_` dict of a class:
-        _methods_ = {
-            "Method1": {'index': 1, 'args': {"hwnd": DT.HWND}},
-            "Method2": {'index': 5, 'args': (HWND, INT)},
-            "Method3": {'index': 6},
-        }
-        """
-        for name, info in methods.items():
-            if hasattr(self, name):
-                logging.warning("Overriding existing method %s", name)
-            args = info.get('args', ())
-            if isinstance(args, dict):
-                args = tuple(args.values())
-            args = tuple((get_args(i) or [i])[0] for i in args)
-            setattr(self, name, gen_method(self.ptr, info['index'], *args))
 
-    def __generate_methods_from_class(self, cls):
-        """
-        Method argument types are specified in type hints of a Python method.
-        If a type hint is a Union then its first element is used.
-        Method index is specified on the 1st line of a doc string like this "index: 1"
-        """
-        for func_name, func in cls.__dict__.items():
-            if not isinstance(func, FunctionType) or not func.__doc__:
-                continue
-            check_idx = func.__doc__.partition('\n')[0].split(":")
-            if len(check_idx) != 2:
-                continue
-            s_index, index = (i.strip() for i in check_idx)
-            if s_index.lower() != "index" or not index.isdecimal():
-                raise ValueError("Specify `index:<int>` on the first line of doc string")
-            setattr(self, func_name,
-                gen_method(
-                    self.ptr, int(index),
-                    *((get_args(i) or [i])[0] for i in get_type_hints(func).values())
-                )
-            )
-
-
+@interface
 class IShellLink(IUnknown):
     """
-    https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ishelllinkw
-    IShellLinkW https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.16299.0/um/ShObjIdl_core.h#L11527
+    Exposes methods that create, modify, and resolve Shell links.
+
+    Shell Links https://learn.microsoft.com/en-us/windows/win32/shell/links
+    IShellLinkW https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ishelllinkw
+    IShellLinkW (source) https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.16299.0/um/ShObjIdl_core.h#L11527
     """
     clsid = CLSID_ShellLink = "{00021401-0000-0000-C000-000000000046}"
     iid = IID_IShellLink  = "{000214F9-0000-0000-C000-000000000046}"
     LPTSTR = WCHAR * MAX_PATH  # https://habr.com/ru/post/164193
 
+    @method(index=3)
     def GetPath(self, pszFile: LPTSTR, cch: DT.INT, pfd: DT.WIN32_FIND_DATA_p, fFlags: DT.DWORD):
-        """ index: 3
+        """
         Gets the path and file name of the target of a Shell link object.
         """
     
@@ -193,8 +266,9 @@ class IShellLink(IUnknown):
         if not self.GetPath(buf, len(buf), byref(fd), SLGP.UNCPRIORITY):
             return buf.value
     
+    @method(index=4)
     def GetIDList(self, ppidl: DT.PIDLIST_ABSOLUTE):
-        """ index: 4
+        """
         Gets the list of item identifiers for the target of a Shell link object.
         """
 
@@ -205,23 +279,38 @@ class IShellLink(IUnknown):
         return idlist
 
 
+@interface
 class IPersistFile(IUnknown):
     """
-    https://learn.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-ipersistfile
-    IPersist https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.16299.0/um/ObjIdl.h#L9140
-    IPersistFile https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.16299.0/um/ObjIdl.h#L10336
+    Enables an object to be loaded from or saved to a disk file.
+
+    IPersistFile https://learn.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-ipersistfile
+    IPersist (source) https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.16299.0/um/ObjIdl.h#L9140
+    IPersistFile (source) https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.16299.0/um/ObjIdl.h#L10336
     """
     clsid = CLSID_ShellLink = "{00021401-0000-0000-C000-000000000046}"
     iid = IID_IPersistFile = "{0000010b-0000-0000-C000-000000000046}"
 
-    def __init__(self, ptr: c_void_p):
-        super().__init__(ptr)
-
+    @method(index=5)
     def Load(self, pszFileName: DT.LPCOLESTR, dwMode: DT.DWORD):
-        "index: 5"
+        """
+        Opens the specified file and initializes an object from the file contents
+        """
 
     def load(self, pszFileName: str, dwMode: int=0):
         "Helper method for Load"
         buf = c_wchar_p(pszFileName)
         if self.Load(buf, dwMode):
             raise WindowsError("Load failed.")
+
+
+if __name__ == '__main__':
+    import os
+    link = IShellLink()
+    path = link.get_path(fr"{os.environ['LocalAppData']}\Microsoft\Windows\WinX\Group1\1 - Desktop.lnk")  # https://katystech.blog/windows/locking-down-the-winx-menu
+    print("IShellLink::GetPath", path)
+    print("IShellLink::AddRef", link.AddRef())
+    print("IShellLink::AddRef", link.AddRef())
+    pf = IPersistFile()
+    print("IPersistFile::Load", pf.Load(fr"{os.environ['LocalAppData']}\Microsoft\Windows\WinX\Group1\1 - Desktop.lnk", 0))
+    print("IPersistFile::Release", pf.Release())
