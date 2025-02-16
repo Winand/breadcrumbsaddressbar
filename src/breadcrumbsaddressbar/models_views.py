@@ -45,10 +45,10 @@ class FilenameModel(QtCore.QStringListModel):
                                    if self.filter != 'dirs' or i.is_dir()])
         elif self.fs_engine == 'qt':
             qdir = QtCore.QDir(str(path))
-            qdir.setFilter(qdir.NoDotAndDotDot | qdir.Hidden |
-                (qdir.Dirs if self.filter == 'dirs' else qdir.AllEntries))
-            names = qdir.entryList(sort=QtCore.QDir.DirsFirst |
-                                   QtCore.QDir.LocaleAware)
+            qdir.setFilter(qdir.Filter.NoDotAndDotDot | qdir.Filter.Hidden |
+                (qdir.Filter.Dirs if self.filter == 'dirs' else qdir.Filter.AllEntries))
+            names = qdir.entryList(sort=QtCore.QDir.SortFlag.DirsFirst |
+                                   QtCore.QDir.SortFlag.LocaleAware)
             lst = [str(path / i) for i in names]
         return lst
 
@@ -85,10 +85,10 @@ class MenuListView(QtWidgets.QMenu):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.listview = lv = QtWidgets.QListView()
-        lv.setFrameShape(lv.NoFrame)
-        lv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        lv.setFrameShape(lv.Shape.NoFrame)
+        lv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         pal = lv.palette()
-        pal.setColor(pal.Base, self.palette().color(pal.Window))
+        pal.setColor(pal.ColorRole.Base, self.palette().color(pal.ColorRole.Window))
         lv.setPalette(pal)
 
         act_wgt = QtWidgets.QWidgetAction(self)
