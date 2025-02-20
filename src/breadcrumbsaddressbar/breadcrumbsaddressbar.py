@@ -45,11 +45,11 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.fs_model = FilenameModel('dirs', icon_provider=self.get_icon)
 
         pal = self.palette()
-        pal.setColor(QtGui.QPalette.Background,
-                     pal.color(QtGui.QPalette.Base))
+        pal.setColor(QtGui.QPalette.ColorRole.Window,
+                     pal.color(QtGui.QPalette.ColorRole.Base))
         self.setPalette(pal)
         self.setAutoFillBackground(True)
-        self.setFrameShape(self.StyledPanel)
+        self.setFrameShape(self.Shape.StyledPanel)
         self.layout().setContentsMargins(4, 0, 0, 0)
         self.layout().setSpacing(0)
 
@@ -82,8 +82,8 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         # Hidden breadcrumbs menu button
         self.btn_root_crumb = QtWidgets.QToolButton(self)
         self.btn_root_crumb.setAutoRaise(True)
-        self.btn_root_crumb.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.btn_root_crumb.setArrowType(Qt.RightArrow)
+        self.btn_root_crumb.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.btn_root_crumb.setArrowType(Qt.ArrowType.RightArrow)
         self.btn_root_crumb.setStyleSheet(style_root_toolbutton)
         self.btn_root_crumb.setMinimumSize(self.btn_root_crumb.minimumSizeHint())
         crumbs_cont_layout.addWidget(self.btn_root_crumb)
@@ -283,7 +283,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
     def _insert_crumb(self, path):
         btn = QtWidgets.QToolButton(self.crumbs_panel)
         btn.setAutoRaise(True)
-        btn.setPopupMode(btn.MenuButtonPopup)
+        btn.setPopupMode(btn.ToolButtonPopupMode.MenuButtonPopup)
         btn.setStyle(self.style_crumbs)
         btn.mouseMoveEvent = self.crumb_mouse_move
         btn.setMouseTracking(True)
@@ -300,7 +300,7 @@ class BreadcrumbsAddressBar(QtWidgets.QFrame):
         self.crumbs_panel.layout().insertWidget(0, btn)
         btn.setMinimumSize(btn.minimumSizeHint())  # fixed size breadcrumbs
         sp = btn.sizePolicy()
-        sp.setVerticalPolicy(sp.Minimum)
+        sp.setVerticalPolicy(sp.Policy.Minimum)
         btn.setSizePolicy(sp)
         # print(self._check_space_width(btn.minimumWidth()))
         # print(btn.size(), btn.sizeHint(), btn.minimumSizeHint())
@@ -428,21 +428,22 @@ class StyleProxy(QtWidgets.QProxyStyle):
         # drawBackground paints with DrawThemeBackgroundEx WinApi function
         # https://docs.microsoft.com/en-us/windows/win32/api/uxtheme/nf-uxtheme-drawthemebackgroundex
         if (self.stylename in self.win_modern and
-            pe == self.PE_IndicatorButtonDropDown
+            pe == self.PrimitiveElement.PE_IndicatorButtonDropDown
             ):
-            pe = self.PE_IndicatorArrowDown  # see below
-        if pe == self.PE_IndicatorArrowDown:
+            pe = self.PrimitiveElement.PE_IndicatorArrowDown  # see below
+        if pe == self.PrimitiveElement.PE_IndicatorArrowDown:
             opt_ = QtWidgets.QStyleOptionToolButton()
             widget.initStyleOption(opt_)
-            rc = super().subControlRect(self.CC_ToolButton, opt_,
-                                        self.SC_ToolButtonMenu, widget)
+            rc = super().subControlRect(self.ComplexControl.CC_ToolButton, opt_,
+                                        self.SubControl.SC_ToolButtonMenu, widget)
             if self.stylename in self.win_modern:
                 # By default PE_IndicatorButtonDropDown draws arrow along
                 # with right button art. Draw 2px clipped left part instead
                 path = QtGui.QPainterPath()
                 path.addRect(QtCore.QRectF(rc))
                 p.setClipPath(path)
-                super().drawPrimitive(self.PE_PanelButtonTool, opt, p, widget)
+                super().drawPrimitive(self.PrimitiveElement.PE_PanelButtonTool,
+                                      opt, p, widget)
             # centered square
             rc.moveTop(int((rc.height() - rc.width()) / 2))
             rc.setHeight(rc.width())
@@ -454,7 +455,7 @@ class StyleProxy(QtWidgets.QProxyStyle):
     def subControlRect(self, cc, opt, sc, widget):
         rc = super().subControlRect(cc, opt, sc, widget)
         if (self.stylename in self.win_modern and
-            sc == self.SC_ToolButtonMenu
+            sc == self.SubControl.SC_ToolButtonMenu
             ):
             rc.adjust(-2, 0, 0, 0)  # cut 2 left pixels to create flat edge
         return rc

@@ -14,7 +14,7 @@
 		},
 		{
 			// WSLg https://github.com/microsoft/wslg
-			// Needs `wsl_distro` to be specified in `settings.json`!!
+			// https://github.com/microsoft/wslg/blob/main/samples/container/Containers.md
 			"type": "docker-run",
 			"label": "docker-run: debug",
 			"dependsOn": [
@@ -28,17 +28,21 @@
 				// https://code.visualstudio.com/docs/containers/reference#_dockerrun-object-properties
 				"volumes": [
 					{
-						"localPath": "\\\\wsl.localhost\\${config:wsl_distro}\\mnt\\wslg",
+						"localPath": "/run/desktop/mnt/host/wslg",
 						"containerPath": "/mnt/wslg"
 					},
 					{
 						// https://unix.stackexchange.com/questions/196677/what-is-tmp-x11-unix
-						"localPath": "\\\\wsl.localhost\\${config:wsl_distro}\\tmp\\.X11-unix",
+						"localPath": "/run/desktop/mnt/host/wslg/.X11-unix",
 						"containerPath": "/tmp/.X11-unix"
 					},
 					{
-						"localPath": "\\\\wsl.localhost\\${config:wsl_distro}\\usr\\lib\\wsl",
+						"localPath": "/usr/lib/wsl",
 						"containerPath": "/usr/lib/wsl"
+					},
+					{
+						"localPath": "${workspaceFolder}",
+						"containerPath": "/app"
 					}
 				],
 				"env": {
@@ -46,7 +50,8 @@
 					"WAYLAND_DISPLAY": "wayland-0",
 					"XDG_RUNTIME_DIR": "/mnt/wslg/runtime-dir",
 					"PULSE_SERVER": "/mnt/wslg/PulseServer",
-					"LD_LIBRARY_PATH": "/usr/lib/wsl/lib"
+					"LD_LIBRARY_PATH": "/usr/lib/wsl/lib",
+					// "QT_DEBUG_PLUGINS": "1",
 				}
 				// https://github.com/microsoft/vscode-docker/issues/3200
 				// , "remove": false
@@ -64,6 +69,12 @@
 				"file": "docker_import.py"
 			},
 			"dockerRun": {
+				"volumes": [
+					{
+						"localPath": "${workspaceFolder}",
+						"containerPath": "/app"
+					}
+				],
 				"env": {
 					"DISPLAY": "host.docker.internal:0.0"
 				}
