@@ -31,8 +31,10 @@ WORKDIR /app
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
-# Create user with uid 1000 because /run/desktop/mnt/host/wslg/runtime-dir (XDG_RUNTIME_DIR)
-# is mounted with that owner, see also https://github.com/microsoft/WSL/issues/9689
+#
+# Wayland requires $XDG_RUNTIME_DIR to be accessible for current user, so create
+# user with uid 1000 because /run/desktop/mnt/host/wslg/runtime-dir ($XDG_RUNTIME_DIR)
+# is mounted with that uid, see also https://github.com/microsoft/WSL/issues/9689
 RUN adduser -u 1000 --disabled-password --gecos "" appuser && chown -R appuser /app
 
 # Install project dependencies
