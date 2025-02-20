@@ -1,6 +1,6 @@
 [project]
 name = "breadcrumbsaddressbar"
-version = "0.1.0"
+version = "0.1.0-dev"
 description = "Address bar Qt widget with breadcrumb navigation"
 readme = "README.md"
 authors = [
@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "pywin32>=308",
+    "pywin32>=308 ; sys_platform == 'win32'",
     "qtpy>=2.4.3",
 ]
 

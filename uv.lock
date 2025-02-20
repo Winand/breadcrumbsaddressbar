@@ -1,13 +1,17 @@
 version = 1
 revision = 1
 requires-python = ">=3.12"
+resolution-markers = [
+    "sys_platform == 'win32'",
+    "sys_platform != 'win32'",
+]
 
 [[package]]
 name = "breadcrumbsaddressbar"
-version = "0.1.0"
+version = "0.1.0.dev0"
 source = { editable = "." }
 dependencies = [
-    { name = "pywin32" },
+    { name = "pywin32", marker = "sys_platform == 'win32'" },
     { name = "qtpy" },
 ]
 
@@ -18,7 +22,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pywin32", specifier = ">=308" },
+    { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=308" },
     { name = "qtpy", specifier = ">=2.4.3" },
 ]
 
