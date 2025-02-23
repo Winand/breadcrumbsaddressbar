@@ -12,10 +12,10 @@ class MenuListView(QtWidgets.QMenu):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.listview = lv = QtWidgets.QListView()
-        lv.setFrameShape(lv.NoFrame)
-        lv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        lv.setFrameShape(lv.Shape.NoFrame)
+        lv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         pal = lv.palette()
-        pal.setColor(pal.Base, self.palette().color(pal.Window))
+        pal.setColor(pal.ColorRole.Base, self.palette().color(pal.ColorRole.Window))
         lv.setPalette(pal)
 
         act_wgt = QtWidgets.QWidgetAction(self)
@@ -34,7 +34,7 @@ class MenuListView(QtWidgets.QMenu):
         lv.leaveEvent = self.clear_selection
         lv.mouseReleaseEvent = self.mouse_release_event
         lv.keyPressEvent = self.key_press_event
-        lv.setFocusPolicy(Qt.NoFocus)  # no focus rect
+        lv.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # no focus rect
         lv.setFocus()
 
         self.last_index = QtCore.QModelIndex()  # selected index
@@ -42,21 +42,21 @@ class MenuListView(QtWidgets.QMenu):
 
     def key_press_event(self, event):
         key = event.key()
-        if key in (Qt.Key_Return, Qt.Key_Enter):
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             if self.last_index.isValid():
                 self.activated.emit(self.last_index)
             self.close()
-        elif key == Qt.Key_Escape:
+        elif key == Qt.Key.Key_Escape:
             self.close()
-        elif key in (Qt.Key_Down, Qt.Key_Up):
+        elif key in (Qt.Key.Key_Down, Qt.Key.Key_Up):
             model = self.listview.model()
             row_from, row_to = 0, model.rowCount()-1
-            if key == Qt.Key_Down:
+            if key == Qt.Key.Key_Down:
                 row_from, row_to = row_to, row_from
             if self.last_index.row() in (-1, row_from):  # no index=-1
                 index = model.index(row_to, 0)
             else:
-                shift = 1 if key == Qt.Key_Down else -1
+                shift = 1 if key == Qt.Key.Key_Down else -1
                 index = model.index(self.last_index.row()+shift, 0)
             self.listview.setCurrentIndex(index)
             self.last_index = index
@@ -72,7 +72,7 @@ class MenuListView(QtWidgets.QMenu):
         self.last_index = QtCore.QModelIndex()
     
     def mouse_press_event(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.flag_mouse_l_pressed = True
             self.update_current_index(event)
 
@@ -81,7 +81,7 @@ class MenuListView(QtWidgets.QMenu):
         When item is clicked w/ left mouse button close menu, emit `clicked`.
         Check if there was left button press event inside this widget.
         """
-        if event.button() == Qt.LeftButton and self.flag_mouse_l_pressed:
+        if event.button() == Qt.MouseButton.LeftButton and self.flag_mouse_l_pressed:
             self.flag_mouse_l_pressed = False
             if self.last_index.isValid():
                 self.clicked.emit(self.last_index)

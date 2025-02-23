@@ -30,10 +30,10 @@ class FilenameModel(DataModel):
     def data(self, index, role):
         "Get names/icons of files"
         default = super().data(index, role)
-        if role == Qt.DecorationRole and self.icon_provider:
+        if role == Qt.ItemDataRole.DecorationRole and self.icon_provider:
             # self.setData(index, dat, role)
-            return self.icon_provider(super().data(index, Qt.DisplayRole))
-        if role == Qt.DisplayRole:
+            return self.icon_provider(super().data(index, Qt.ItemDataRole.DisplayRole))
+        if role == Qt.ItemDataRole.DisplayRole:
             return Path(default).name
         return default
 
@@ -49,10 +49,10 @@ class FilenameModel(DataModel):
                                    if self.filter != 'dirs' or i.is_dir()])
         elif self.fs_engine == 'qt':
             qdir = QtCore.QDir(str(path))
-            qdir.setFilter(qdir.NoDotAndDotDot | qdir.Hidden |
-                (qdir.Dirs if self.filter == 'dirs' else qdir.AllEntries))
-            names = qdir.entryList(sort=QtCore.QDir.DirsFirst |
-                                   QtCore.QDir.LocaleAware)
+            qdir.setFilter(qdir.Filter.NoDotAndDotDot | qdir.Filter.Hidden |
+                (qdir.Filter.Dirs if self.filter == 'dirs' else qdir.Filter.AllEntries))
+            names = qdir.entryList(sort=QtCore.QDir.SortFlag.DirsFirst |
+                                   QtCore.QDir.SortFlag.LocaleAware)
             lst = [str(path / i) for i in names]
         return lst
 
