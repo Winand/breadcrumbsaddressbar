@@ -2,7 +2,7 @@
     "configurations": [
         {
             "name": "Python: Current file",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"

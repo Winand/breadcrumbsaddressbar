@@ -1,0 +1,29 @@
+[project]
+name = "breadcrumbsaddressbar"
+version = "0.1.0-dev"
+description = "Address bar Qt widget with breadcrumb navigation"
+readme = "README.md"
+authors = [
+    { name = "Andrey Makarov", email = "winandfx@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pywin32>=308 ; sys_platform == 'win32'",
+    "qtpy>=2.4.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pyside6-essentials>=6.8.2.1",
+]
+
+[tool.ruff]
+select = ["ALL"]
+ignore = [
+    "Q000",  # single quotes
+    "ERA001",  # commented-out code
+]
