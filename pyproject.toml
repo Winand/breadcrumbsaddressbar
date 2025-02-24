@@ -12,6 +12,11 @@ dependencies = [
     "qtpy>=2.4.3",
 ]
 
+[project.optional-dependencies]
+yaml = [
+    "pyyaml>=6.0.2",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
