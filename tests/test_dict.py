@@ -2,8 +2,10 @@ import os
 from pathlib import Path
 from unittest import TestCase
 
+from PySide6 import QtWidgets
+from PySide6.QtWidgets import QApplication
+
 from breadcrumbsaddressbar.backend.dictionary import Dictionary
-from PyQt5 import QtWidgets, QtGui, QtCore
 
 
 class TestDictionary(TestCase):
@@ -11,7 +13,7 @@ class TestDictionary(TestCase):
     Dictionary data provider tests
     """
     def setUp(self) -> None:
-        self.app = QtWidgets.QApplication([])
+        self.app = QApplication.instance() or QApplication([])
         return super().setUp()
 
     def test_root_directory(self):
@@ -32,7 +34,7 @@ class TestDictionary(TestCase):
         get_places iterates over (name, path) tuples
         Additionally check path icon
         """
-        test_icon = self.app.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay)
+        test_icon = self.app.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MediaPlay)
         prov_d = Dictionary({"/": "icon=SP_MediaPlay", "/metadata": {"places": {"root": "/"}}})
         places = list(prov_d.get_places())
         self.assertEqual(len(places), 1)
